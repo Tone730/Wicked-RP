@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wicked RP — Discord Rich Presence</title>
+  <meta name="theme-color" content="#0b0c0e">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/logo-mark.svg" alt="" width="28" height="28">
+        <span>Wicked RP</span>
+      </div>
+
+      <div class="status-card">
+        <div class="status-row">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Disconnected</span>
+        </div>
+        <div class="app-id-row">
+          <label class="small-label">Discord App ID</label>
+          <input type="text" id="discord-app-id" placeholder="1166482936243925032" spellcheck="false">
+          <button class="btn-sm" id="btn-connect">Connect</button>
+        </div>
+        <button class="btn" id="btn-disconnect" style="display:none">Disconnect</button>
+      </div>
+
+      <nav class="nav">
+        <a class="nav-item active" data-view="presence">
+          <svg class="icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h4v-3z"/></svg>
+          Presence
+        </a>
+        <a class="nav-item" data-view="profiles">
+          <svg class="icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M2 12h20"/><path d="M12 2a10 10 0 0 0-9.95 9.95L12 2z"/></svg>
+          Profiles
+        </a>
+        <a class="nav-item" data-view="settings">
+          <svg class="icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 14a1.65 1.65 0 0 0-1-1.51l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V9a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.01a1.65 1.65 0 0 0 1 1.51l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33V9a2 2 0 0 1 2-2 2 2 0 0 1 2 2v5.5a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33z"/></svg>
+          Settings
+        </a>
+      </nav>
+
+      <div class="footer">
+        <a href="#" onclick="wickedRP.openUrl('https://discord.gg/YwNQdu5pyh'); return false;" class="footer-link">Discord Server</a>
+        <a href="#" onclick="wickedRP.openUrl('https://github.com/Tone730/Wicked-RP'); return false;" class="footer-link">GitHub</a>
+        <div class="version">v1.0.0</div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <!-- Presence view -->
+      <section class="view" id="view-presence">
+        <header class="view-header">
+          <h1>Rich Presence</h1>
+          <p class="subtitle">Customize what shows on your Discord profile in real time.</p>
+        </header>
+
+        <div class="presence-preview card">
+          <div class="preview-header">
+            <span class="preview-label">Your Activity</span>
+            <span class="preview-live" id="preview-live">● LIVE</span>
+          </div>
+          <div class="preview-body">
+            <div class="preview-image" id="preview-image">
+              <div class="preview-image-placeholder">No image</div>
+            </div>
+            <div class="preview-info">
+              <div class="preview-title" id="preview-title">My Activity</div>
+              <div class="preview-state" id="preview-state">Doing something awesome</div>
+              <div class="preview-timestamps" id="preview-timestamps"></div>
+              <div class="preview-buttons" id="preview-buttons"></div>
+            </div>
+          </div>
+        </div>
+
+        <form id="presence-form" class="form-grid">
+          <div class="form-field">
+            <label>Activity Name <span class="required">*</span></label>
+            <input type="text" id="field-details" placeholder="e.g. Gaming, Listening, Working" value="Gaming">
+          </div>
+
+          <div class="form-field">
+            <label>Details</label>
+            <input type="text" id="field-state" placeholder="What you're doing..." value="Playing an epic game">
+          </div>
+
+          <div class="form-field">
+            <label>Start Time (Unix seconds)</label>
+            <input type="number" id="field-start" placeholder="Leave empty for now" value="">
+            <p class="field-hint">Use current Unix timestamp or leave blank to start now.</p>
+          </div>
+
+          <div class="form-field">
+            <label>End Time (Unix seconds)</label>
+            <input type="number" id="field-end" placeholder="Optional end time" value="">
+            <p class="field-hint">Shows a countdown when set.</p>
+          </div>
+
+          <div class="form-field">
+            <label>Large Image Key</label>
+            <input type="text" id="field-large-image" placeholder="Image key from Discord app" value="">
+            <p class="field-hint">Asset name uploaded to your Discord application.</p>
+          </div>
+
+          <div class="form-field">
+            <label>Large Image Text (hover)</label>
+            <input type="text" id="field-large-text" placeholder="Hover text" value="">
+          </div>
+
+          <div class="form-field">
+            <label>Small Image Key</label>
+            <input type="text" id="field-small-image" placeholder="Small asset key" value="">
+            <p class="field-hint">Small badge shown on the corner.</p>
+          </div>
+
+          <div class="form-field">
+            <label>Small Image Text</label>
+            <input type="text" id="field-small-text" placeholder="Badge hover text" value="">
+          </div>
+
+          <div class="form-field">
+            <label>Button 1 Label</label>
+            <input type="text" id="field-btn1-label" placeholder="Join Game" value="Join Game">
+          </div>
+
+          <div class="form-field">
+            <label>Button 1 URL</label>
+            <input type="text" id="field-btn1-url" placeholder="https://example.com" value="https://discord.gg/YwNQdu5pyh">
+          </div>
+
+          <div class="form-field">
+            <label>Button 2 Label</label>
+            <input type="text" id="field-btn2-label" placeholder="Website" value="Website">
+          </div>
+
+          <div class="form-field">
+            <label>Button 2 URL</label>
+            <input type="text" id="field-btn2-url" placeholder="https://example.com" value="https://github.com/Tone730/Wicked-RP">
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="btn-apply">Apply Presence</button>
+            <button type="button" class="btn btn-outline" id="btn-clear">Clear Presence</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Profiles view -->
+      <section class="view hidden" id="view-profiles">
+        <header class="view-header">
+          <h1>Profiles</h1>
+          <p class="subtitle">Save and switch between multiple presence configurations.</p>
+        </header>
+
+        <div class="profiles-toolbar">
+          <input type="text" id="profile-name" placeholder="New profile name...">
+          <button class="btn btn-primary" id="btn-save-profile">Save as Profile</button>
+        </div>
+
+        <div class="profiles-list" id="profiles-list">
+          <!-- Profiles rendered here -->
+        </div>
+
+        <div class="empty-state hidden" id="empty-profiles">
+          <p>No profiles yet. Configure your presence and save it as a profile.</p>
+        </div>
+      </section>
+
+      <!-- Settings view -->
+      <section class="view hidden" id="view-settings">
+        <header class="view-header">
+          <h1>Settings</h1>
+          <p class="subtitle">Application preferences.</p>
+        </header>
+
+        <div class="settings-card card">
+          <div class="setting-row">
+            <label class="setting-label">Start on Windows login</label>
+            <label class="toggle">
+              <input type="checkbox" id="setting-start-on-boot">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <label class="setting-label">Minimize to tray instead of closing</label>
+            <label class="toggle">
+              <input type="checkbox" id="setting-minimize-to-tray" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <label class="setting-label">Discord Application ID</label>
+            <p class="setting-hint">Get one at <a href="#" onclick="wickedRP.openUrl('https://discord.com/developers/applications'); return false;">Discord Developer Portal</a>. Custom image assets require a verified Discord application.</p>
+          </div>
+
+          <div class="setting-row">
+            <label class="setting-label">Optional Features</label>
+            <p class="setting-hint">Music bot status, server events, and scheduled activities coming in v1.1.</p>
+            <div class="feature-chips">
+              <span class="chip chip-coming">Music Bot</span>
+              <span class="chip chip-coming">Server Events</span>
+              <span class="chip chip-coming">Preset Scheduler</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    import { wickedRP } from './renderer.js';
+  </script>
+</body>
+</html>

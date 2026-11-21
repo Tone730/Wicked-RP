@@ -1,0 +1,81 @@
+{
+  "name": "wicked-rp",
+  "productName": "Wicked RP",
+  "version": "1.0.0",
+  "description": "Wicked RP — customizable Discord Rich Presence manager. Real-time activity settings, multiple server profiles, startup + tray. Rebranded remake of Custom RP.",
+  "main": "main.js",
+  "author": "Wicked Development <wick777@engineer.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tone730/Wicked-RP.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Tone730/Wicked-RP/issues"
+  },
+  "homepage": "https://github.com/Tone730/Wicked-RP#readme",
+  "keywords": [
+    "discord",
+    "discord-rpc",
+    "rich-presence",
+    "activity",
+    "presence",
+    "windows",
+    "tray",
+    "startup"
+  ],
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder -w"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "discord-rpc": "^4.0.1",
+    "electron-log": "^5.2.0",
+    "electron-store": "^8.1.0"
+  },
+  "build": {
+    "appId": "com.wicked.rp",
+    "productName": "Wicked RP",
+    "copyright": "Copyright © 2026 Wicked Development",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "style.css",
+      "assets/**",
+      "node_modules/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    }
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
+  }
+}
