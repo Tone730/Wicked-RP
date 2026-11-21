@@ -18,9 +18,12 @@ let rpcClient = null;
 let rpcConnected = false;
 let currentActivity = null;
 let isQuitting = false;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
 
-// Discord application ID (public placeholder — users can override in settings)
-const DEFAULT_DISCORD_APP_ID = '1166482936243925032';
+// Discord application ID (users can override in settings)
+const DEFAULT_DISCORD_APP_ID = '1573677093601017927';
 
 function assetPath(name) {
   const p = path.join(__dirname, 'assets', name);
@@ -70,6 +73,7 @@ function connectDiscord(appId) {
 
   rpcClient.on('ready', () => {
     rpcConnected = true;
+    resetReconnect();
     log.info('Discord RPC ready');
     broadcast('rpc-status', { connected: true, appId });
     if (currentActivity) {
@@ -81,6 +85,7 @@ function connectDiscord(appId) {
     rpcConnected = false;
     log.warn('Discord RPC disconnected');
     broadcast('rpc-status', { connected: false });
+    scheduleReconnect();
   });
 
   rpcClient.on('error', (err) => {
@@ -96,6 +101,31 @@ function connectDiscord(appId) {
   });
 
   return rpcClient;
+}
+
+function scheduleReconnect() {
+  if (isQuitting || reconnectTimer) return;
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    log.warn('Max reconnect attempts reached');
+    return;
+  }
+  reconnectAttempts++;
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+  log.info(`Scheduling Discord RPC reconnect attempt ${reconnectAttempts} in ${delay}ms`);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    log.info('Attempting Discord RPC reconnect...');
+    const savedAppId = store.get('discordAppId', DEFAULT_DISCORD_APP_ID);
+    connectDiscord(savedAppId);
+  }, delay);
+}
+
+function resetReconnect() {
+  reconnectAttempts = 0;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
 }
 
 function setActivity(activity) {

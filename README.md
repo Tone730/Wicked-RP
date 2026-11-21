@@ -10,6 +10,8 @@
 | **Multiple profiles** | Save and switch between different presence configs for different servers/games |
 | **Startup + tray** | Launch on Windows login, minimize to system tray |
 | **Custom App ID** | Use your own Discord application for custom image assets |
+| **Auto-reconnect** | Automatically reconnects to Discord if it restarts (exponential backoff) |
+| **Auto-restore** | Restores your last presence on startup |
 | **Live preview** | See exactly how your presence will look on Discord before applying |
 | **Per-presence App ID** | Override the Application ID for any presence |
 | **Modern UI** | Dark glassmorphism design with smooth animations |
@@ -21,6 +23,16 @@ _(Add screenshots of the new UI here)_
 ## Install
 
 Download the latest installer from [GitHub Releases](https://github.com/Tone730/Wicked-RP/releases).
+
+## Getting Started
+
+1. **Create a Discord Application** at https://discord.com/developers/applications
+2. Copy the **Application ID** (Client ID)
+3. Launch Wicked RP and paste the ID into the **Application ID** field
+4. Click **Connect** (make sure Discord desktop is running)
+5. Configure your presence and click **Apply Presence**
+
+Your activity will now show on your Discord profile. Wicked RP auto-reconnects if Discord restarts and restores your last presence on startup.
 
 ## Development
 

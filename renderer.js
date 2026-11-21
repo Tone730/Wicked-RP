@@ -61,9 +61,11 @@ const els = {
 };
 
 // ---------------------------------------------------------------- state
+const DEFAULT_APP_ID = '1573677093601017927';
 let profiles = [];
 let activeProfileId = null;
 let rpcConnected = false;
+let autoApplyPending = false;
 
 // ---------------------------------------------------------------- navigation
 function showView(viewId) {
@@ -232,6 +234,16 @@ wickedRP.onRpcStatus((data) => {
   els.btnConnect.style.display = rpcConnected ? 'none' : 'inline-flex';
   els.btnDisconnect.style.display = rpcConnected ? 'flex' : 'none';
   updatePreview(readForm(), rpcConnected);
+
+  // Auto-apply last presence on connect
+  if (rpcConnected && autoApplyPending) {
+    autoApplyPending = false;
+    const activity = readForm();
+    if (activity.details) {
+      wickedRP.setPresence(activity);
+      showToast('Last presence restored.', 'info');
+    }
+  }
 });
 
 wickedRP.onRpcError((data) => {
@@ -274,8 +286,8 @@ async function loadProfiles() {
   const settings = await wickedRP.getStoredSettings();
   profiles = settings.profiles || [];
   activeProfileId = settings.activeProfile || null;
-  els.discordAppId.value = settings.discordAppId || '';
-  els.settingAppId.value = settings.discordAppId || '';
+  els.discordAppId.value = settings.discordAppId || DEFAULT_APP_ID;
+  els.settingAppId.value = settings.discordAppId || DEFAULT_APP_ID;
   renderProfiles();
   if (activeProfileId) {
     const profile = profiles.find((p) => p.id === activeProfileId);
@@ -420,6 +432,7 @@ function showToast(message, type = 'info') {
 // ---------------------------------------------------------------- init
 (async () => {
   try {
+    autoApplyPending = true;
     await loadSettings();
     await loadProfiles();
     showView('presence');
