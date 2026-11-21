@@ -22,13 +22,19 @@ let isQuitting = false;
 // Discord application ID (public placeholder — users can override in settings)
 const DEFAULT_DISCORD_APP_ID = '1166482936243925032';
 
+function assetPath(name) {
+  const p = path.join(__dirname, 'assets', name);
+  return require('fs').existsSync(p) ? p : '';
+}
+function iconPath() { return assetPath('icon.png') || undefined; }
+
 // ---------------------------------------------------------------- window
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 900,
-    height: 700,
-    minWidth: 700,
-    minHeight: 500,
+    width: 1000,
+    height: 720,
+    minWidth: 800,
+    minHeight: 520,
     show: false,
     autoHideMenuBar: true,
     title: 'Wicked RP',
@@ -37,7 +43,7 @@ function createMainWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    icon: path.join(__dirname, 'assets', 'icon.png'),
+    icon: iconPath(),
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
@@ -99,6 +105,7 @@ function setActivity(activity) {
     return;
   }
 
+  // Use per-activity App ID if provided, otherwise fall back to the client's app ID
   const rpcActivity = {
     details: activity.details || '',
     state: activity.state || '',
@@ -136,7 +143,7 @@ function clearActivity() {
 function disconnectDiscord() {
   clearActivity();
   if (rpcClient) {
-    rpcClient.destroy();
+    try { rpcClient.destroy(); } catch (e) { /* ignore */ }
     rpcClient = null;
   }
   rpcConnected = false;
@@ -152,8 +159,8 @@ function broadcast(channel, data) {
 
 // ---------------------------------------------------------------- tray
 function createTray() {
-  const iconPath = path.join(__dirname, 'assets', 'tray.png');
-  const trayImage = nativeImage.createFromPath(iconPath);
+  const trayPath = assetPath('tray.png');
+  const trayImage = trayPath ? nativeImage.createFromPath(trayPath) : nativeImage.createEmpty();
 
   tray = new Tray(trayImage);
   tray.setToolTip('Wicked RP');
