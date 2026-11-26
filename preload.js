@@ -1,5 +1,5 @@
 /**
- * Wicked RP — preload script
+ * Wicked RP — preload script (Production v2.0)
  * Securely exposes IPC methods to the renderer via contextBridge.
  */
 
@@ -16,10 +16,18 @@ contextBridge.exposeInMainApi('wickedRP', {
   connectDiscord: (appId) => ipcRenderer.invoke('connect-discord', appId),
   disconnectDiscord: () => ipcRenderer.invoke('disconnect-discord'),
 
+  // Media
+  getMediaList: () => ipcRenderer.invoke('get-media-list'),
+  deleteMedia: (filename) => ipcRenderer.invoke('delete-media', filename),
+
+  // Presets
+  getPresets: () => ipcRenderer.invoke('get-presets'),
+  savePresets: (presets) => ipcRenderer.invoke('save-presets', presets),
+
   // Utilities
   openUrl: (url) => ipcRenderer.invoke('open-url', url),
 
-  // Event listeners (renderer -> main via send)
+  // Event listeners
   onRpcStatus: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on('rpc-status', handler);
@@ -39,5 +47,10 @@ contextBridge.exposeInMainApi('wickedRP', {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on('presence-cleared', handler);
     return () => ipcRenderer.removeListener('presence-cleared', handler);
+  },
+  onMediaUpdated: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('media-updated', handler);
+    return () => ipcRenderer.removeListener('media-updated', handler);
   },
 });

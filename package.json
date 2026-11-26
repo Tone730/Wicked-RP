@@ -1,8 +1,8 @@
 {
   "name": "wicked-rp",
   "productName": "Wicked RP",
-  "version": "1.0.0",
-  "description": "Wicked RP — customizable Discord Rich Presence manager. Real-time activity settings, multiple server profiles, startup + tray. Rebranded remake of Custom RP.",
+  "version": "2.0.0",
+  "description": "Wicked RP — customizable Discord Rich Presence manager. Real-time activity settings, multiple server profiles, startup + tray, built-in media manager, themes, presets, and more. No Discord Developer Portal required for basic text presence.",
   "main": "main.js",
   "author": "Wicked Development <wick777@engineer.com>",
   "license": "MIT",
@@ -22,29 +22,35 @@
     "presence",
     "windows",
     "tray",
-    "startup"
+    "startup",
+    "media-manager",
+    "themes"
   ],
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder -w"
+    "dist": "electron-builder -w",
+    "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
-    "electron": "^31.7.7",
+    "electron": "^31.0.0",
     "electron-builder": "^25.0.0"
   },
   "dependencies": {
     "discord-rpc": "^4.0.1",
+    "electron-store": "^8.1.0",
     "electron-log": "^5.2.0",
-    "electron-store": "^8.1.0"
+    "chokidar": "^3.6.0",
+    "sharp": "^0.33.0"
   },
   "build": {
     "appId": "com.wicked.rp",
     "productName": "Wicked RP",
     "copyright": "Copyright © 2026 Wicked Development",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "app": "."
     },
     "files": [
       "main.js",
@@ -53,18 +59,26 @@
       "renderer.js",
       "style.css",
       "assets/**",
+      "media/**",
       "node_modules/**"
+    ],
+    "extraMetadata": {},
+    "extraResources": [
+      {
+        "from": "media",
+        "to": "media",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon.ico",
+      "publisherName": "Wicked Development"
     },
     "nsis": {
       "oneClick": false,
@@ -72,10 +86,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     }
-  },
-  "allowScripts": {
-    "electron@31.7.7": true
   }
 }

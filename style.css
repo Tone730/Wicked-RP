@@ -1,7 +1,6 @@
 /**
- * Wicked RP — styles
- * Modern dark glassmorphism design with purple/violet accent.
- * Inspired by Discord's dark theme + macOS aesthetics.
+ * Wicked RP — styles (Production v2.0)
+ * Modern dark glassmorphism design with theme support, media manager, presets, and more.
  */
 
 :root {
@@ -31,6 +30,44 @@
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Theme: Midnight */
+[data-theme="midnight"] {
+  --bg: #0f172a;
+  --bg-elev: #1e293b;
+  --glass: rgba(30, 41, 59, 0.6);
+  --input: #1e293b;
+  --border: #334155;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent: #8b5cf6;
+}
+
+/* Theme: Ocean */
+[data-theme="ocean"] {
+  --bg: #064e3b;
+  --bg-elev: #065f46;
+  --glass: rgba(6, 95, 70, 0.6);
+  --input: #064e3b;
+  --border: #10b981;
+  --text: #ecfdf5;
+  --text-muted: #6ee7b7;
+  --accent: #10b981;
+  --accent-hover: #34d399;
+}
+
+/* Theme: Sunset */
+[data-theme="sunset"] {
+  --bg: #451a03;
+  --bg-elev: #7c2d12;
+  --glass: rgba(124, 45, 18, 0.6);
+  --input: #451a03;
+  --border: #ea580c;
+  --text: #fff7ed;
+  --text-muted: #fdba74;
+  --accent: #ea580c;
+  --accent-hover: #fb923c;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -55,7 +92,7 @@ button {
   color: inherit;
 }
 
-input {
+input, select {
   font: inherit;
   background: var(--input);
   border: 1px solid var(--border);
@@ -66,7 +103,7 @@ input {
   transition: var(--transition);
 }
 input::placeholder { color: var(--text-dim); }
-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-glow); }
+input:focus, select:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-glow); }
 
 .hidden { display: none !important; }
 
@@ -81,7 +118,6 @@ input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--acc
   position: relative;
 }
 
-/* Subtle background gradient glow */
 .app::before {
   content: '';
   position: fixed;
@@ -377,6 +413,7 @@ input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--acc
   box-shadow: 0 6px 18px var(--accent-glow);
 }
 .btn-primary:active { transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-outline {
   background: var(--input);
@@ -407,6 +444,17 @@ input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--acc
 }
 .btn-danger-sm:hover { background: rgba(255, 77, 79, 0.15); border-color: var(--danger); }
 
+.btn-sm {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  transition: var(--transition);
+}
+.btn-sm:hover { background: var(--border); }
+
 /* ======================================================================== */
 /* Glass Card                                                               */
 /* ======================================================================== */
@@ -425,7 +473,7 @@ input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--acc
 
 .presence-grid {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 360px 1fr;
   gap: 20px;
   align-items: start;
 }
@@ -619,6 +667,18 @@ input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--acc
   margin-top: 8px;
 }
 
+/* Presets */
+.preset-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.preset-bar select {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
 /* ======================================================================== */
 /* Profiles                                                                 */
 /* ======================================================================== */
@@ -713,6 +773,147 @@ input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--acc
 .empty-state p { font-size: 13px; max-width: 320px; line-height: 1.6; }
 
 /* ======================================================================== */
+/* Media Manager                                                            */
+/* ======================================================================== */
+
+.media-panel { padding: 24px; }
+
+.media-toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.media-upload-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--input);
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.media-upload-zone:hover {
+  border-color: var(--border-focus);
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.upload-btn input { display: none; }
+
+.upload-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+.media-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  background: var(--input);
+  transition: var(--transition);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.media-item:hover {
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+}
+.media-item.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.media-thumb {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  background: var(--border);
+}
+.media-item video.media-thumb { object-fit: cover; }
+
+.media-file-icon {
+  width: 100%;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: var(--text-dim);
+  background: var(--border);
+}
+
+.media-info {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.media-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-size {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.media-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0;
+  transition: var(--transition);
+}
+.media-item:hover .media-delete { opacity: 1; }
+
+.media-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--text-muted);
+}
+
+.media-note h4 { margin: 0 0 8px 0; font-size: 14px; }
+
+/* ======================================================================== */
 /* Settings                                                                 */
 /* ======================================================================== */
 
@@ -784,50 +985,45 @@ input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--acc
   margin-bottom: 20px;
 }
 
-.feature-grid {
+/* Themes */
+.theme-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
 
-.feature-card {
+.theme-card {
   padding: 16px;
   background: var(--input);
-  border: 1px dashed var(--border);
+  border: 2px solid var(--border);
   border-radius: 10px;
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
   transition: var(--transition);
 }
-.feature-card.disabled { opacity: 0.65; }
+.theme-card:hover {
+  border-color: var(--border-focus);
+  background: rgba(124, 58, 237, 0.05);
+}
+.theme-card.active {
+  border-color: var(--accent);
+  background: rgba(124, 58, 237, 0.12);
+}
 
-.feature-icon { font-size: 20px; flex-shrink: 0; }
+.theme-preview {
+  width: 48px;
+  height: 32px;
+  border-radius: 6px;
+}
 
-.feature-info { flex: 1; min-width: 0; }
-
-.feature-name {
-  font-size: 13px;
+.theme-name {
+  font-size: 12px;
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 2px;
-}
-
-.feature-desc {
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-.coming-badge {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  background: rgba(255,255,255,0.04);
-  padding: 2px 8px;
-  border-radius: 10px;
-  border: 1px dashed var(--border);
 }
 
 .settings-actions {
@@ -894,7 +1090,7 @@ input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--acc
 /* Focus styles                                                             */
 /* ======================================================================== */
 
-button:focus-visible, input:focus-visible {
+button:focus-visible, input:focus-visible, select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

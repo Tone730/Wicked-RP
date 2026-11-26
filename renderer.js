@@ -1,21 +1,18 @@
 /**
- * Wicked RP — renderer process
- * UI logic: presence form, profiles, settings, real-time preview, toast notifications.
- * All Custom RP features: activity name, details, state, timestamps, large/small images,
- * buttons, application ID, profiles, startup, minimize to tray.
+ * Wicked RP — renderer process (Production v2.0)
+ * Full UI logic: presence, profiles, media manager, presets, themes, settings.
  */
+
+const DEFAULT_APP_ID = '1573677093601017927';
 
 // ---------------------------------------------------------------- DOM refs
 const els = {
-  // Sidebar status
+  // Sidebar
   statusDot: document.getElementById('status-dot'),
   statusText: document.getElementById('status-text'),
-  statusBadge: document.getElementById('status-badge'),
   discordAppId: document.getElementById('discord-app-id'),
   btnConnect: document.getElementById('btn-connect'),
   btnDisconnect: document.getElementById('btn-disconnect'),
-
-  // Navigation
   navItems: document.querySelectorAll('.nav-item'),
   views: document.querySelectorAll('.view'),
 
@@ -33,18 +30,32 @@ const els = {
   fieldBtn1Url: document.getElementById('field-btn1-url'),
   fieldBtn2Label: document.getElementById('field-btn2-label'),
   fieldBtn2Url: document.getElementById('field-btn2-url'),
+  fieldPartySize: document.getElementById('field-party-size'),
+  fieldPartyMax: document.getElementById('field-party-max'),
+  fieldMatchSecret: document.getElementById('field-match-secret'),
+  fieldJoinSecret: document.getElementById('field-join-secret'),
+  fieldSpectateSecret: document.getElementById('field-spectate-secret'),
   btnApply: document.getElementById('btn-apply'),
   btnApplyForm: document.getElementById('btn-apply-form'),
   btnClear: document.getElementById('btn-clear'),
   btnClearForm: document.getElementById('btn-clear-form'),
+  btnPreset: document.getElementById('btn-preset'),
+  presetSelect: document.getElementById('preset-select'),
 
-  // Discord preview
+  // Preview
   previewName: document.getElementById('preview-name'),
   previewState: document.getElementById('preview-state'),
   previewMeta: document.getElementById('preview-meta'),
   previewImage: document.getElementById('preview-image'),
   previewButtons: document.getElementById('preview-buttons'),
   previewStatusBadge: document.getElementById('status-badge'),
+
+  // Media Manager
+  mediaUpload: document.getElementById('media-upload'),
+  mediaList: document.getElementById('media-list'),
+  mediaEmpty: document.getElementById('media-empty'),
+  mediaTypeFilter: document.getElementById('media-type-filter'),
+  useMediaBtn: document.getElementById('use-media-btn'),
 
   // Profiles
   profileName: document.getElementById('profile-name'),
@@ -57,15 +68,23 @@ const els = {
   settingStartOnBoot: document.getElementById('setting-start-on-boot'),
   settingMinimizeToTray: document.getElementById('setting-minimize-to-tray'),
   settingAppId: document.getElementById('setting-app-id'),
+  settingTheme: document.getElementById('setting-theme'),
   btnSaveSettings: document.getElementById('btn-save-settings'),
+  themeCards: document.querySelectorAll('.theme-card'),
+
+  // Discord portal
+  btnDiscordPortal: document.getElementById('btn-discord-portal'),
 };
 
 // ---------------------------------------------------------------- state
-const DEFAULT_APP_ID = '1573677093601017927';
 let profiles = [];
 let activeProfileId = null;
 let rpcConnected = false;
 let autoApplyPending = false;
+let mediaList = [];
+let selectedMedia = null;
+let presets = [];
+let currentTheme = 'dark';
 
 // ---------------------------------------------------------------- navigation
 function showView(viewId) {
@@ -82,8 +101,32 @@ els.navItems.forEach((item) => {
   item.addEventListener('click', (e) => {
     e.preventDefault();
     showView(item.dataset.view);
+    if (item.dataset.view === 'media') loadMedia();
   });
 });
+
+// ---------------------------------------------------------------- themes
+function applyTheme(theme) {
+  currentTheme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+
+  els.themeCards.forEach((card) => {
+    card.classList.toggle('active', card.dataset.theme === theme);
+  });
+
+  // Update tray icon color hint via toast
+  showToast(`Theme switched to ${theme}`, 'info');
+}
+
+function initThemes() {
+  els.themeCards.forEach((card) => {
+    card.addEventListener('click', () => {
+      const theme = card.dataset.theme;
+      applyTheme(theme);
+      saveSettings({ theme });
+    });
+  });
+}
 
 // ---------------------------------------------------------------- presence form
 function readForm() {
@@ -95,7 +138,7 @@ function readForm() {
     buttons.push({ label: els.fieldBtn2Label.value.trim(), url: els.fieldBtn2Url.value.trim() });
   }
 
-  return {
+  const activity = {
     details: els.fieldDetails.value.trim(),
     state: els.fieldState.value.trim(),
     appId: els.fieldAppId.value.trim() || null,
@@ -107,6 +150,16 @@ function readForm() {
     smallImageText: els.fieldSmallText.value.trim(),
     buttons,
   };
+
+  if (els.fieldPartySize.value || els.fieldPartyMax.value) {
+    activity.partySize = els.fieldPartySize.value ? parseInt(els.fieldPartySize.value, 10) : 0;
+    activity.partyMax = els.fieldPartyMax.value ? parseInt(els.fieldPartyMax.value, 10) : 0;
+  }
+  if (els.fieldMatchSecret.value.trim()) activity.matchSecret = els.fieldMatchSecret.value.trim();
+  if (els.fieldJoinSecret.value.trim()) activity.joinSecret = els.fieldJoinSecret.value.trim();
+  if (els.fieldSpectateSecret.value.trim()) activity.spectateSecret = els.fieldSpectateSecret.value.trim();
+
+  return activity;
 }
 
 function writeForm(activity) {
@@ -119,6 +172,12 @@ function writeForm(activity) {
   els.fieldLargeText.value = activity.largeImageText || '';
   els.fieldSmallImage.value = activity.smallImageKey || '';
   els.fieldSmallText.value = activity.smallImageText || '';
+  els.fieldPartySize.value = activity.partySize || '';
+  els.fieldPartyMax.value = activity.partyMax || '';
+  els.fieldMatchSecret.value = activity.matchSecret || '';
+  els.fieldJoinSecret.value = activity.joinSecret || '';
+  els.fieldSpectateSecret.value = activity.spectateSecret || '';
+
   if (activity.buttons && activity.buttons[0]) {
     els.fieldBtn1Label.value = activity.buttons[0].label || '';
     els.fieldBtn1Url.value = activity.buttons[0].url || '';
@@ -130,12 +189,9 @@ function writeForm(activity) {
 }
 
 function updatePreview(activity, connected) {
-  // Name
   els.previewName.textContent = activity.details || 'Playing';
-  // State
   els.previewState.textContent = activity.state || 'Something awesome';
 
-  // Meta line (timestamps)
   let meta = '';
   if (activity.startTimestamp) {
     const start = new Date(activity.startTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -145,17 +201,28 @@ function updatePreview(activity, connected) {
       meta += ` • Ends ${end}`;
     }
   }
+  if (activity.partySize && activity.partyMax) {
+    meta += ` • ${activity.partySize}/${activity.partyMax}`;
+  }
   els.previewMeta.textContent = meta;
 
   // Image
-  if (activity.largeImageKey) {
-    els.previewImage.classList.add('has-image');
-    els.previewImage.style.backgroundImage = `url('https://cdn.discordapp.com/app-assets/${activity.appId || els.discordAppId.value || '0'}/${activity.largeImageKey}.png')`;
-    els.previewImage.textContent = '';
+  const imgKey = activity.largeImageKey;
+  if (imgKey) {
+    // Check if it's a local media file
+    const mediaItem = mediaList.find((m) => m.name === imgKey || m.path === imgKey);
+    if (mediaItem && mediaItem.isImage) {
+      els.previewImage.classList.add('has-image');
+      els.previewImage.style.backgroundImage = `url('${mediaItem.url}')`;
+      els.previewImage.innerHTML = '';
+    } else {
+      els.previewImage.classList.add('has-image');
+      els.previewImage.style.backgroundImage = `url('https://cdn.discordapp.com/app-assets/${activity.appId || els.discordAppId.value || '0'}/${imgKey}.png')`;
+      els.previewImage.innerHTML = '';
+    }
   } else {
     els.previewImage.classList.remove('has-image');
     els.previewImage.style.backgroundImage = '';
-    els.previewImage.textContent = 'No Image';
     els.previewImage.innerHTML = '<div class="image-placeholder">No Image</div>';
   }
 
@@ -170,7 +237,7 @@ function updatePreview(activity, connected) {
     });
   }
 
-  // Status badge
+  // Status
   if (connected) {
     els.previewStatusBadge.classList.remove('offline');
     els.previewStatusBadge.classList.add('online');
@@ -213,16 +280,27 @@ els.btnApplyForm.addEventListener('click', applyPresence);
 els.btnClear.addEventListener('click', clearPresence);
 els.btnClearForm.addEventListener('click', clearPresence);
 
-// Real-time preview on input
+// Real-time preview
 const formInputs = [
   els.fieldDetails, els.fieldState, els.fieldAppId, els.fieldStart, els.fieldEnd,
   els.fieldLargeImage, els.fieldLargeText, els.fieldSmallImage, els.fieldSmallText,
   els.fieldBtn1Label, els.fieldBtn1Url, els.fieldBtn2Label, els.fieldBtn2Url,
+  els.fieldPartySize, els.fieldPartyMax,
 ];
 formInputs.forEach((input) => {
   input.addEventListener('input', () => {
     updatePreview(readForm(), rpcConnected);
   });
+});
+
+// Preset apply
+els.btnPreset.addEventListener('click', () => {
+  const preset = presets.find((p) => p.id === els.presetSelect.value);
+  if (preset) {
+    writeForm(preset);
+    updatePreview(preset, rpcConnected);
+    showToast(`Preset "${preset.name}" loaded.`, 'info');
+  }
 });
 
 // ---------------------------------------------------------------- RPC status
@@ -235,7 +313,6 @@ wickedRP.onRpcStatus((data) => {
   els.btnDisconnect.style.display = rpcConnected ? 'flex' : 'none';
   updatePreview(readForm(), rpcConnected);
 
-  // Auto-apply last presence on connect
   if (rpcConnected && autoApplyPending) {
     autoApplyPending = false;
     const activity = readForm();
@@ -281,6 +358,11 @@ els.btnDisconnect.addEventListener('click', async () => {
   }
 });
 
+// Discord portal
+els.btnDiscordPortal.addEventListener('click', () => {
+  wickedRP.openUrl('https://discord.com/developers/applications');
+});
+
 // ---------------------------------------------------------------- profiles
 async function loadProfiles() {
   const settings = await wickedRP.getStoredSettings();
@@ -288,6 +370,8 @@ async function loadProfiles() {
   activeProfileId = settings.activeProfile || null;
   els.discordAppId.value = settings.discordAppId || DEFAULT_APP_ID;
   els.settingAppId.value = settings.discordAppId || DEFAULT_APP_ID;
+  currentTheme = settings.theme || 'dark';
+  applyTheme(currentTheme);
   renderProfiles();
   if (activeProfileId) {
     const profile = profiles.find((p) => p.id === activeProfileId);
@@ -315,11 +399,11 @@ function renderProfiles() {
         <div class="profile-activity">${escapeHtml(profile.activity.details || '')}</div>
       </div>
       <div class="profile-actions">
-        <button class="btn-ghost-sm profile-btn-load" data-id="${profile.id}" title="Load profile">
+        <button class="btn-ghost-sm profile-btn-load" data-id="${profile.id}" title="Load">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.34 9.45a.5.5 0 0 1-.832.83l-9.45-3.34a.5.5 0 0 1-.832-.83l3.34-9.45a.5.5 0 0 1 1.664 0l3.34 9.45a.5.5 0 0 1 .832.83z"/></svg>
           Load
         </button>
-        <button class="btn-danger-sm profile-btn-delete" data-id="${profile.id}" title="Delete profile">
+        <button class="btn-danger-sm profile-btn-delete" data-id="${profile.id}" title="Delete">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           Delete
         </button>
@@ -338,7 +422,7 @@ function renderProfiles() {
         updatePreview(profile.activity, rpcConnected);
         saveSettings({ activeProfile: id });
         renderProfiles();
-        showToast(`Loaded profile "${profile.name}".`, 'info');
+        showToast(`Loaded "${profile.name}".`, 'info');
       }
     });
   });
@@ -347,7 +431,7 @@ function renderProfiles() {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.id;
       const profile = profiles.find((p) => p.id === id);
-      if (!confirm(`Delete profile "${profile ? profile.name : ''}"?`)) return;
+      if (!confirm(`Delete "${profile ? profile.name : ''}"?`)) return;
       profiles = profiles.filter((p) => p.id !== id);
       if (activeProfileId === id) activeProfileId = null;
       await saveSettings({ profiles, activeProfile });
@@ -383,12 +467,123 @@ els.btnSaveProfile.addEventListener('click', async () => {
   showView('presence');
 });
 
+// ---------------------------------------------------------------- media manager
+async function loadMedia() {
+  try {
+    const settings = await wickedRP.getStoredSettings();
+    mediaList = settings.mediaList || [];
+    renderMedia();
+  } catch (e) {
+    showToast('Failed to load media.', 'error');
+  }
+}
+
+function renderMedia() {
+  els.mediaList.innerHTML = '';
+  const filter = els.mediaTypeFilter.value;
+
+  const filtered = mediaList.filter((m) => {
+    if (filter === 'images') return m.isImage;
+    if (filter === 'videos') return m.isVideo;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    els.mediaEmpty.classList.remove('hidden');
+    return;
+  }
+  els.mediaEmpty.classList.add('hidden');
+
+  filtered.forEach((media) => {
+    const item = document.createElement('div');
+    item.className = `media-item ${selectedMedia === media.name ? 'selected' : ''}`;
+    item.onclick = () => {
+      selectedMedia = media.name;
+      renderMedia();
+      els.useMediaBtn.disabled = false;
+    };
+
+    let preview = '';
+    if (media.isImage) {
+      preview = `<img src="${media.url}" class="media-thumb" alt="${escapeHtml(media.name)}">`;
+    } else if (media.isVideo) {
+      preview = `<video class="media-thumb" muted playsinline><source src="${media.url}" type="${media.isVideo ? 'video/mp4' : ''}">Your browser does not support video</video>`;
+    } else {
+      preview = `<div class="media-thumb media-file-icon">📄</div>`;
+    }
+
+    item.innerHTML = `
+      ${preview}
+      <div class="media-info">
+        <div class="media-name">${escapeHtml(media.name)}</div>
+        <div class="media-size">${(media.size / 1024).toFixed(1)} KB</div>
+      </div>
+      <button class="btn-danger-sm media-delete" data-name="${escapeHtml(media.name)}" title="Delete" onclick="event.stopPropagation(); deleteMedia('${escapeHtml(media.name)}')">×</button>
+    `;
+    els.mediaList.appendChild(item);
+  });
+
+  els.useMediaBtn.disabled = !selectedMedia;
+}
+
+async function deleteMedia(filename) {
+  if (!confirm(`Delete "${filename}"?`)) return;
+  const result = await wickedRP.deleteMedia(filename);
+  if (result.success) {
+    showToast('Media deleted.', 'info');
+    selectedMedia = null;
+    loadMedia();
+  } else {
+    showToast('Failed to delete: ' + result.error, 'error');
+  }
+}
+
+window.deleteMedia = deleteMedia;
+
+els.mediaUpload.addEventListener('change', async (e) => {
+  const files = e.target.files;
+  if (!files.length) return;
+
+  // In this Electron app, we handle file upload via a hidden input + save
+  // Since we can't directly write to userData from renderer, we use a different approach:
+  // We'll show a message explaining how to add media files
+  showToast('Select files, then they will appear in the media folder.', 'info');
+
+  // For now, show instructions
+  const fileNames = Array.from(files).map((f) => f.name).join(', ');
+  showToast(`Selected: ${fileNames}. Copy these files to your Wicked RP media folder to use them.`, 'info');
+
+  // Open the media folder
+  try {
+    await wickedRP.openUrl(`file://${pathMediaDir()}`);
+  } catch (err) {
+    // ignore
+  }
+});
+
+function pathMediaDir() {
+  // Return the media directory path for the user
+  return 'Check your Wicked RP app data folder for the media directory';
+}
+
+els.useMediaBtn.addEventListener('click', () => {
+  if (!selectedMedia) return;
+  els.fieldLargeImage.value = selectedMedia;
+  updatePreview(readForm(), rpcConnected);
+  showView('presence');
+  showToast(`Selected image: ${selectedMedia}`, 'success');
+});
+
+els.mediaTypeFilter.addEventListener('change', renderMedia);
+
 // ---------------------------------------------------------------- settings
 async function loadSettings() {
   const settings = await wickedRP.getStoredSettings();
   els.settingStartOnBoot.checked = !!settings.startOnBoot;
   els.settingMinimizeToTray.checked = settings.minimizeToTray !== false;
-  els.settingAppId.value = settings.discordAppId || '';
+  els.settingAppId.value = settings.discordAppId || DEFAULT_APP_ID;
+  currentTheme = settings.theme || 'dark';
+  applyTheme(currentTheme);
 }
 
 els.btnSaveSettings.addEventListener('click', async () => {
@@ -399,6 +594,12 @@ els.btnSaveSettings.addEventListener('click', async () => {
   });
   showToast('Settings saved.', 'success');
 });
+
+// ---------------------------------------------------------------- presets
+async function loadPresetsData() {
+  presets = await wickedRP.getPresets();
+  els.presetSelect.innerHTML = presets.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+}
 
 // ---------------------------------------------------------------- helpers
 async function saveSettings(partial) {
@@ -435,6 +636,8 @@ function showToast(message, type = 'info') {
     autoApplyPending = true;
     await loadSettings();
     await loadProfiles();
+    await loadPresetsData();
+    initThemes();
     showView('presence');
     updatePreview(readForm(), rpcConnected);
   } catch (err) {
@@ -443,5 +646,4 @@ function showToast(message, type = 'info') {
   }
 })();
 
-// Expose openUrl for inline onclick handlers
 window.wickedRP = wickedRP;
