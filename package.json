@@ -30,8 +30,7 @@
     "start": "electron .",
     "dev": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder -w",
-    "postinstall": "electron-builder install-app-deps"
+    "dist": "electron-builder -w"
   },
   "devDependencies": {
     "electron": "^31.0.0",
@@ -41,8 +40,7 @@
     "discord-rpc": "^4.0.1",
     "electron-store": "^8.1.0",
     "electron-log": "^5.2.0",
-    "chokidar": "^3.6.0",
-    "sharp": "^0.33.0"
+    "chokidar": "^3.6.0"
   },
   "build": {
     "appId": "com.wicked.rp",
