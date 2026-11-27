@@ -1,5 +1,5 @@
 /**
- * Wicked RP — preload script (Production v2.0)
+ * Wicked RP — preload script (Production v2.1)
  * Securely exposes IPC methods to the renderer via contextBridge.
  */
 
@@ -23,6 +23,10 @@ contextBridge.exposeInMainApi('wickedRP', {
   // Presets
   getPresets: () => ipcRenderer.invoke('get-presets'),
   savePresets: (presets) => ipcRenderer.invoke('save-presets', presets),
+
+  // Profiles import/export
+  exportProfiles: () => ipcRenderer.invoke('export-profiles'),
+  importProfiles: (data) => ipcRenderer.invoke('import-profiles', data),
 
   // Utilities
   openUrl: (url) => ipcRenderer.invoke('open-url', url),
@@ -52,5 +56,10 @@ contextBridge.exposeInMainApi('wickedRP', {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on('media-updated', handler);
     return () => ipcRenderer.removeListener('media-updated', handler);
+  },
+  onNavigateTo: (callback) => {
+    const handler = (_event, view) => callback(view);
+    ipcRenderer.on('navigate-to', handler);
+    return () => ipcRenderer.removeListener('navigate-to', handler);
   },
 });

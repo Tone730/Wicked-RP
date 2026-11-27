@@ -1,6 +1,7 @@
 /**
- * Wicked RP — Electron main process (Production v2.0)
- * Discord Rich Presence, media server, tray, auto-startup, IPC, presets, themes.
+ * Wicked RP — Electron main process (Production v2.1)
+ * Discord Rich Presence, media server, tray, auto-startup, IPC, presets, themes,
+ * window state persistence, keyboard shortcuts, about/error dialogs.
  */
 
 const { app, BrowserWindow, ipcMain, Tray, nativeImage, shell, globalShortcut, Menu } = require('electron');
@@ -16,14 +17,36 @@ const store = new Store();
 
 // ---------------------------------------------------------------- constants
 const DEFAULT_DISCORD_APP_ID = '1573677093601017927';
+const APP_VERSION = '2.1.0';
 const MEDIA_DIR = path.join(app.getPath('userData'), 'media');
 const PRESETS_FILE = path.join(app.getPath('userData'), 'presets.json');
 const THEMES_FILE = path.join(app.getPath('userData'), 'themes.json');
+const WINDOW_STATE_FILE = path.join(app.getPath('userData'), 'window-state.json');
 const MEDIA_PORT = 47321;
 
 // ---------------------------------------------------------------- ensure dirs
 if (!fs.existsSync(MEDIA_DIR)) {
   fs.mkdirSync(MEDIA_DIR, { recursive: true });
+}
+
+// ---------------------------------------------------------------- window state
+function getWindowState() {
+  try {
+    if (fs.existsSync(WINDOW_STATE_FILE)) {
+      return JSON.parse(fs.readFileSync(WINDOW_STATE_FILE, 'utf8'));
+    }
+  } catch (e) { /* ignore */ }
+  return { x: undefined, y: undefined, width: 1100, height: 760, maximized: false };
+}
+
+function saveWindowState(win) {
+  if (!win || win.isDestroyed()) return;
+  const [x, y] = win.getPosition();
+  const [w, h] = win.getSize();
+  const state = { x, y, width: w, height: h, maximized: win.isMaximized() };
+  try {
+    fs.writeFileSync(WINDOW_STATE_FILE, JSON.stringify(state, null, 2));
+  } catch (e) { log.error('Failed to save window state:', e.message); }
 }
 
 // ---------------------------------------------------------------- app state
@@ -38,6 +61,7 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 let mediaServer = null;
 let mediaWatcher = null;
+let globalShortcutsRegistered = false;
 
 // ---------------------------------------------------------------- media server
 function startMediaServer() {
@@ -45,7 +69,7 @@ function startMediaServer() {
 
   mediaServer = http.createServer((req, res) => {
     const url = new URL(req.url, `http://localhost:${MEDIA_PORT}`);
-    const filePath = path.join(MEDIA_DIR, url.pathname.replace(/^\//, ''));
+    const filePath = path.join(MEDIA_DIR, decodeURIComponent(url.pathname.replace(/^\//, '')));
 
     if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -72,7 +96,6 @@ function startMediaServer() {
     log.info(`Media server running on http://127.0.0.1:${MEDIA_PORT}`);
   });
 
-  // Watch media dir for changes
   mediaWatcher = chokidar.watch(MEDIA_DIR, { ignored: /(^|[\/\\])\../ });
   mediaWatcher.on('add', (file) => broadcast('media-updated', { action: 'add', file }));
   mediaWatcher.on('unlink', (file) => broadcast('media-updated', { action: 'remove', file }));
@@ -112,9 +135,13 @@ function getMediaList() {
 
 // ---------------------------------------------------------------- window
 function createMainWindow() {
+  const state = getWindowState();
+
   mainWindow = new BrowserWindow({
-    width: 1100,
-    height: 760,
+    x: state.x,
+    y: state.y,
+    width: state.width,
+    height: state.height,
     minWidth: 850,
     minHeight: 550,
     show: false,
@@ -131,12 +158,16 @@ function createMainWindow() {
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
   mainWindow.once('ready-to-show', () => {
+    if (state.maximized) mainWindow.maximize();
     mainWindow.show();
   });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  mainWindow.on('resize', () => saveWindowState(mainWindow));
+  mainWindow.on('move', () => saveWindowState(mainWindow));
 
   return mainWindow;
 }
@@ -215,14 +246,10 @@ function setActivity(activity) {
     }));
   }
 
-  // Add party size if provided
   if (activity.partySize && activity.partyMax) {
-    rpcActivity.party = {
-      size: [activity.partySize, activity.partyMax],
-    };
+    rpcActivity.party = { size: [activity.partySize, activity.partyMax] };
   }
 
-  // Add secrets for join/spectate
   if (activity.matchSecret) rpcActivity.matchSecret = activity.matchSecret;
   if (activity.joinSecret) rpcActivity.joinSecret = activity.joinSecret;
   if (activity.spectateSecret) rpcActivity.spectateSecret = activity.spectateSecret;
@@ -301,7 +328,8 @@ function createTray() {
           else connectDiscord(store.get('discordAppId', DEFAULT_DISCORD_APP_ID));
         }},
       { type: 'separator' },
-      { label: 'Quick Presence', submenu: [] }, // populated dynamically
+      { label: 'Media Manager', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.webContents.send('navigate-to', 'media'); } } },
+      { label: 'Profiles', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.webContents.send('navigate-to', 'profiles'); } } },
       { type: 'separator' },
       { label: 'Quit', click: () => { isQuitting = true; app.quit(); } },
     ];
@@ -328,6 +356,8 @@ app.whenReady().then(() => {
   const savedAppId = store.get('discordAppId', DEFAULT_DISCORD_APP_ID);
   connectDiscord(savedAppId);
 
+  registerGlobalShortcuts();
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
   });
@@ -341,9 +371,23 @@ app.on('window-all-closed', (e) => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  if (globalShortcutsRegistered) {
+    globalShortcut.unregisterAll();
+    globalShortcutsRegistered = false;
+  }
   stopMediaServer();
   disconnectDiscord();
 });
+
+function registerGlobalShortcuts() {
+  if (globalShortcutsRegistered) return;
+  try {
+    globalShortcut.register('CommandOrControl+Shift+D', () => {
+      if (mainWindow) mainWindow.webContents.send('toggle-devtools');
+    });
+    globalShortcutsRegistered = true;
+  } catch (e) { log.warn('Failed to register global shortcuts:', e.message); }
+}
 
 // ---------------------------------------------------------------- presets
 function loadPresets() {
@@ -376,7 +420,9 @@ ipcMain.on('get-stored-settings', (event) => {
     startOnBoot: store.get('startOnBoot', false),
     minimizeToTray: store.get('minimizeToTray', true),
     theme: store.get('theme', 'dark'),
+    language: store.get('language', 'en'),
     mediaList: getMediaList(),
+    appVersion: APP_VERSION,
   };
 });
 
@@ -390,6 +436,7 @@ ipcMain.handle('save-settings', async (event, settings) => {
   }
   if (settings.minimizeToTray !== undefined) store.set('minimizeToTray', settings.minimizeToTray);
   if (settings.theme !== undefined) store.set('theme', settings.theme);
+  if (settings.language !== undefined) store.set('language', settings.language);
   return { success: true };
 });
 
@@ -447,6 +494,36 @@ ipcMain.handle('save-presets', async (event, presets) => {
   return { success: true };
 });
 
+ipcMain.handle('export-profiles', async (event) => {
+  try {
+    const settings = store.store;
+    const profiles = settings.profiles || [];
+    const activeProfile = settings.activeProfile || null;
+    return { success: true, profiles, activeProfile, exportedAt: new Date().toISOString(), version: APP_VERSION };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('import-profiles', async (event, data) => {
+  try {
+    if (!data || !Array.isArray(data.profiles)) {
+      return { success: false, error: 'Invalid import data' };
+    }
+    const existing = store.get('profiles', []);
+    const merged = [...existing, ...data.profiles];
+    store.set('profiles', merged);
+    if (data.activeProfile) store.set('activeProfile', data.activeProfile);
+    return { success: true, imported: data.profiles.length };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
 ipcMain.on('minimize-to-tray', () => {
   if (mainWindow) mainWindow.hide();
+});
+
+ipcMain.on('navigate-to', (event, view) => {
+  if (mainWindow) mainWindow.webContents.send('navigate-to', view);
 });
