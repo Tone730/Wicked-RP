@@ -1,7 +1,7 @@
 {
   "name": "wicked-rp",
   "productName": "Wicked RP",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Wicked RP — customizable Discord Rich Presence manager. Real-time activity settings, multiple server profiles, startup + tray, built-in media manager, themes, presets, i18n translations, import/export, Discord Developer Portal redirect, activity types, auto-apply, getting started wizard, and more. No Discord Developer Portal required for basic text presence.",
   "main": "main.js",
   "author": "Wicked Development <wick777@engineer.com>",

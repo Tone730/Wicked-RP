@@ -60,6 +60,15 @@
             <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2.163c3.204 0 3.584.012 4.85.071 3.252.144 4.771 1.691 4.919 4.919.059 1.265.072 1.646.072 4.85 0 3.203-.013 3.583-.071 4.85-.144 3.252-1.692 4.771-4.919 4.919-1.265.059-1.646.072-4.85.072-3.203 0-3.583-.013-4.85-.071-3.252-.144-4.771-1.691-4.919-4.919-.059-1.265-.072-1.646-.072-4.85 0-3.203.013-3.583.071-4.85.144-3.252 1.692-4.771 4.919-4.919 1.265-.059 1.646-.072 4.85-.072zm1.042 12.094c-.692.045-1.177.24-1.632.591-.48.37-.885 1.06-.788 2.276.095 1.22-.616 2.266-1.535 2.692-.298.137-2.392 1.083-3.355 1.325-.292.075-2.707.262-2.95.143-.922-.453-.932-2.01-.155-2.859.276-.303 2.47-.989 3.43-.588 1.433.597 2.243 1.595 2.471 2.516.07.277-.137 1.498-1.073 1.949-.911.437-2.547.708-3.649.273-1.123-.442-2.298-1.644-2.596-3.078-.129-.612-.002-2.161 1.047-2.902 1.29-.916 3.48-.963 4.339-.346.73.525.998 1.787.48 2.59-.344.533-.616 1.031-1.074 1.475-.707.685-1.307 1.371-1.646 2.045-.132.261-.125 3.392.862 4.293.925.848 2.491.997 3.246.487.429-.29 2.669-2.093 3.488-1.421.457.376 1.035.907 1.505 1.543.736.994.321 3.466-.317 4.07-.736.694-2.477.666-3.189-.149-.402-.458-.797-1.45-.716-2.478.114-1.458.997-2.571 1.95-2.782 1.195-.265 2.727-.047 3.547.485.727.47 1.468.944 2.295 1.418.485.278 2.23.909 2.949 1.134.613.193 3.021.399 3.29-.306.182-.476-.111-2.172-.692-2.784-.562-.594-1.133-1.188-1.699-1.761z"/></svg>
             <span>Dev Portal</span>
           </button>
+          <div class="discord-selector">
+            <label class="field-label" style="font-size:11px;margin-bottom:6px;">Select Discord</label>
+            <select id="discord-type-select" style="width:100%;padding:8px;border-radius:6px;background:var(--input);border:1px solid var(--border);color:var(--text);font-size:12px;">
+              <option value="discord">Discord</option>
+              <option value="discordptb">Discord PTB</option>
+              <option value="discordcanary">Discord Canary</option>
+            </select>
+          </div>
+          <div id="discord-auto-status" style="margin-top:8px;"></div>
         </div>
       </div>
 
@@ -274,6 +283,14 @@
                     <label>Small Image Hover Text</label>
                     <input type="text" id="field-small-text" placeholder="Badge hover text">
                   </div>
+                </div>
+                <div class="video-note" style="margin-top:12px;padding:12px;background:rgba(255,77,79,0.08);border:1px dashed rgba(255,77,79,0.2);border-radius:8px;">
+                  <h4 style="color:var(--danger);margin:0 0 8px 0;font-size:13px;">🎬 Video in Discord Rich Presence</h4>
+                  <p style="color:var(--text-muted);font-size:12px;line-height:1.5;margin:0;">
+                    Discord Rich Presence does <strong>not support video</strong> — only static images or animated GIFs can be used as presence images.
+                    <br><br>
+                    <strong>Workaround:</strong> Use an animated GIF as your Large Image Key for a moving effect, or manage your video files in the Media Manager for reference.
+                  </p>
                 </div>
               </div>
 

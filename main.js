@@ -8,6 +8,8 @@ const { app, BrowserWindow, ipcMain, Tray, nativeImage, shell, globalShortcut, M
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const net = require('net');
+const { execSync } = require('child_process');
 const { Client } = require('discord-rpc');
 const Store = require('electron-store');
 const log = require('electron-log');
@@ -17,12 +19,19 @@ const store = new Store();
 
 // ---------------------------------------------------------------- constants
 const DEFAULT_DISCORD_APP_ID = '1573677093601017927';
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.3.0';
 const MEDIA_DIR = path.join(app.getPath('userData'), 'media');
 const PRESETS_FILE = path.join(app.getPath('userData'), 'presets.json');
 const THEMES_FILE = path.join(app.getPath('userData'), 'themes.json');
 const WINDOW_STATE_FILE = path.join(app.getPath('userData'), 'window-state.json');
 const MEDIA_PORT = 47321;
+
+// Discord IPC pipe names (Windows)
+const DISCORD_PIPES = [
+  { name: 'Discord', pipePattern: '\\\\?\\pipe\\discord-ipc-', types: ['stable'] },
+  { name: 'Discord PTB', pipePattern: '\\\\?\\pipe\\discord-ipc-', types: ['ptb'] },
+  { name: 'Discord Canary', pipePattern: '\\\\?\\pipe\\discord-ipc-', types: ['canary'] },
+];
 
 // ---------------------------------------------------------------- ensure dirs
 if (!fs.existsSync(MEDIA_DIR)) {
@@ -52,7 +61,7 @@ function saveWindowState(win) {
 // ---------------------------------------------------------------- app state
 let mainWindow = null;
 let tray = null;
-let rpcClient = null;
+let rpcClients = {}; // keyed by discordType
 let rpcConnected = false;
 let currentActivity = null;
 let isQuitting = false;
@@ -62,6 +71,73 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 let mediaServer = null;
 let mediaWatcher = null;
 let globalShortcutsRegistered = false;
+let activeDiscordTypes = []; // currently connected Discord types
+
+// ---------------------------------------------------------------- Discord detection
+const DISCORD_INSTANCES = [
+  { id: 'discord', name: 'Discord', processName: 'Discord.exe', pipeBase: '\\\\?\\pipe\\discord-ipc-' },
+  { id: 'discordptb', name: 'Discord PTB', processName: 'DiscordPTB.exe', pipeBase: '\\\\?\\pipe\\discord-ipc-' },
+  { id: 'discordcanary', name: 'Discord Canary', processName: 'DiscordCanary.exe', pipeBase: '\\\\?\\pipe\\discord-ipc-' },
+];
+
+function detectRunningDiscord() {
+  const running = [];
+  for (const inst of DISCORD_INSTANCES) {
+    try {
+      const output = execSync(`tasklist /FI "IMAGENAME eq ${inst.processName}" /NH`, { encoding: 'utf8', windowsHide: true });
+      if (output.includes(inst.processName)) {
+        running.push({
+          id: inst.id,
+          name: inst.name,
+          processName: inst.processName,
+          pipeBase: inst.pipeBase,
+          running: true,
+        });
+      }
+    } catch (e) {
+      log.error(`Failed to detect ${inst.name}:`, e.message);
+    }
+  }
+  return running;
+}
+
+function getDiscordInstances() {
+  return detectRunningDiscord();
+}
+
+function tryPipeConnect(pipeBase, pipeNum, timeout = 500) {
+  return new Promise((resolve, reject) => {
+    const socket = new net.Socket();
+    const timer = setTimeout(() => {
+      socket.destroy();
+      reject(new Error('timeout'));
+    }, timeout);
+    socket.connect(pipeBase + pipeNum, 'localhost', () => {
+      clearTimeout(timer);
+      socket.end();
+      resolve(pipeNum);
+    });
+    socket.on('error', () => {
+      clearTimeout(timer);
+      reject(new Error('connection refused'));
+    });
+    socket.on('timeout', () => {
+      clearTimeout(timer);
+      socket.destroy();
+      reject(new Error('timeout'));
+    });
+  });
+}
+
+async function findAvailablePipe(inst) {
+  for (let i = 0; i < 10; i++) {
+    try {
+      await tryPipeConnect(inst.pipeBase, i);
+      return i;
+    } catch (e) { /* try next */ }
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------- media server
 function startMediaServer() {
@@ -177,106 +253,148 @@ function assetPath(name) {
   return fs.existsSync(p) ? p : undefined;
 }
 
-// ---------------------------------------------------------------- Discord RPC
-function connectDiscord(appId) {
-  if (rpcClient && rpcConnected) {
-    log.info('Discord RPC already connected');
-    return rpcClient;
+// ---------------------------------------------------------------- Discord RPC (multi-instance)
+function connectDiscord(discordType, appId) {
+  if (rpcClients[discordType] && rpcClients[discordType].connected) {
+    log.info(`Discord RPC already connected for ${discordType}`);
+    return rpcClients[discordType];
   }
 
-  resetReconnect();
+  const inst = DISCORD_INSTANCES.find((i) => i.id === discordType);
+  if (!inst) {
+    log.error(`Unknown Discord type: ${discordType}`);
+    return null;
+  }
 
-  rpcClient = new Client({ transport: 'rpc' });
+  const client = new Client({ transport: 'rpc' });
+  rpcClients[discordType] = { client, connected: false, appId };
 
-  rpcClient.on('ready', () => {
+  client.on('ready', () => {
+    rpcClients[discordType].connected = true;
     rpcConnected = true;
-    resetReconnect();
-    log.info('Discord RPC ready');
-    broadcast('rpc-status', { connected: true, appId });
+    activeDiscordTypes.push(discordType);
+    log.info(`Discord RPC ready for ${discordType}`);
+    broadcast('rpc-status', { connected: true, discordType, appId, instances: getConnectedInstances() });
     if (currentActivity) {
-      setActivity(currentActivity);
+      setActivity(currentActivity, discordType);
     }
   });
 
-  rpcClient.on('disconnected', () => {
-    rpcConnected = false;
-    log.warn('Discord RPC disconnected');
-    broadcast('rpc-status', { connected: false });
+  client.on('disconnected', () => {
+    rpcClients[discordType].connected = false;
+    activeDiscordTypes = activeDiscordTypes.filter((t) => t !== discordType);
+    log.warn(`Discord RPC disconnected for ${discordType}`);
+    if (activeDiscordTypes.length === 0) {
+      rpcConnected = false;
+      broadcast('rpc-status', { connected: false, instances: [] });
+    } else {
+      broadcast('rpc-status', { connected: true, discordType, connected: false, instances: getConnectedInstances() });
+    }
     scheduleReconnect();
   });
 
-  rpcClient.on('error', (err) => {
-    log.error('Discord RPC error:', err.message);
-    broadcast('rpc-error', { message: err.message });
+  client.on('error', (err) => {
+    log.error(`Discord RPC error for ${discordType}:`, err.message);
+    broadcast('rpc-error', { message: err.message, discordType });
   });
 
-  rpcClient.login({ clientId: appId }).catch((err) => {
-    log.error('Failed to login to Discord RPC:', err.message);
-    broadcast('rpc-error', { message: err.message });
-    rpcConnected = false;
-    broadcast('rpc-status', { connected: false });
+  // Find available pipe and connect
+  findAvailablePipe(inst).then((pipeNum) => {
+    if (pipeNum === null) {
+      log.error(`No available IPC pipe for ${discordType}`);
+      broadcast('rpc-error', { message: `No IPC pipe available for ${inst.name}`, discordType });
+      return;
+    }
+    // discord-rpc uses pipe number via options
+    client.login({ clientId: appId }).catch((err) => {
+      log.error(`Failed to login to Discord RPC for ${discordType}:`, err.message);
+      broadcast('rpc-error', { message: err.message, discordType });
+      rpcClients[discordType].connected = false;
+      broadcast('rpc-status', { connected: false, instances: getConnectedInstances() });
+    });
+  }).catch((err) => {
+    log.error(`Pipe detection failed for ${discordType}:`, err.message);
   });
 
-  return rpcClient;
+  return rpcClients[discordType];
 }
 
-function setActivity(activity) {
+function getConnectedInstances() {
+  return activeDiscordTypes.map((t) => {
+    const inst = DISCORD_INSTANCES.find((i) => i.id === t);
+    return { id: t, name: inst ? inst.name : t, connected: rpcClients[t]?.connected || false };
+  });
+}
+
+function setActivity(activity, discordType = null) {
   currentActivity = activity;
-  if (!rpcClient || !rpcConnected) {
-    log.warn('Discord RPC not connected, storing activity for later');
-    return;
-  }
 
-  const rpcActivity = {
-    details: activity.details || '',
-    state: activity.state || '',
-    startTimestamp: activity.startTimestamp || null,
-    endTimestamp: activity.endTimestamp || null,
-    largeImageKey: activity.largeImageKey || null,
-    largeImageText: activity.largeImageText || '',
-    smallImageKey: activity.smallImageKey || null,
-    smallImageText: activity.smallImageText || '',
-    instance: false,
-  };
+  const typesToUpdate = discordType ? [discordType] : activeDiscordTypes;
 
-  if (activity.buttons && activity.buttons.length > 0) {
-    rpcActivity.buttons = activity.buttons.slice(0, 2).map((b) => ({
-      label: b.label || '',
-      url: b.url || '',
-    }));
-  }
+  for (const type of typesToUpdate) {
+    const clientData = rpcClients[type];
+    if (!clientData || !clientData.connected || !clientData.client) continue;
 
-  if (activity.partySize && activity.partyMax) {
-    rpcActivity.party = { size: [activity.partySize, activity.partyMax] };
-  }
+    const rpcActivity = {
+      details: activity.details || '',
+      state: activity.state || '',
+      startTimestamp: activity.startTimestamp || null,
+      endTimestamp: activity.endTimestamp || null,
+      largeImageKey: activity.largeImageKey || null,
+      largeImageText: activity.largeImageText || '',
+      smallImageKey: activity.smallImageKey || null,
+      smallImageText: activity.smallImageText || '',
+      instance: false,
+    };
 
-  if (activity.matchSecret) rpcActivity.matchSecret = activity.matchSecret;
-  if (activity.joinSecret) rpcActivity.joinSecret = activity.joinSecret;
-  if (activity.spectateSecret) rpcActivity.spectateSecret = activity.spectateSecret;
+    if (activity.buttons && activity.buttons.length > 0) {
+      rpcActivity.buttons = activity.buttons.slice(0, 2).map((b) => ({
+        label: b.label || '',
+        url: b.url || '',
+      }));
+    }
 
-  rpcClient.setActivity(rpcActivity).catch((err) => {
-    log.error('Failed to set activity:', err.message);
-    broadcast('rpc-error', { message: err.message });
-  });
-}
+    if (activity.partySize && activity.partyMax) {
+      rpcActivity.party = { size: [activity.partySize, activity.partyMax] };
+    }
 
-function clearActivity() {
-  currentActivity = null;
-  if (rpcClient && rpcConnected) {
-    rpcClient.clearActivity().catch((err) => {
-      log.error('Failed to clear activity:', err.message);
+    if (activity.matchSecret) rpcActivity.matchSecret = activity.matchSecret;
+    if (activity.joinSecret) rpcActivity.joinSecret = activity.joinSecret;
+    if (activity.spectateSecret) rpcActivity.spectateSecret = activity.spectateSecret;
+
+    clientData.client.setActivity(rpcActivity).catch((err) => {
+      log.error(`Failed to set activity for ${type}:`, err.message);
+      broadcast('rpc-error', { message: err.message, discordType: type });
     });
   }
 }
 
-function disconnectDiscord() {
-  clearActivity();
-  if (rpcClient) {
-    try { rpcClient.destroy(); } catch (e) { /* ignore */ }
-    rpcClient = null;
+function clearActivity() {
+  currentActivity = null;
+  for (const type of activeDiscordTypes) {
+    const clientData = rpcClients[type];
+    if (clientData && clientData.connected && clientData.client) {
+      clientData.client.clearActivity().catch((err) => {
+        log.error(`Failed to clear activity for ${type}:`, err.message);
+      });
+    }
   }
-  rpcConnected = false;
-  broadcast('rpc-status', { connected: false });
+}
+
+function disconnectDiscord(discordType = null) {
+  clearActivity();
+  const types = discordType ? [discordType] : [...activeDiscordTypes];
+  for (const type of types) {
+    const clientData = rpcClients[type];
+    if (clientData && clientData.client) {
+      try { clientData.client.destroy(); } catch (e) { /* ignore */ }
+      clientData.connected = false;
+      delete rpcClients[type];
+    }
+  }
+  activeDiscordTypes = activeDiscordTypes.filter((t) => !types.includes(t));
+  rpcConnected = activeDiscordTypes.length > 0;
+  broadcast('rpc-status', { connected: rpcConnected, instances: getConnectedInstances() });
 }
 
 function scheduleReconnect() {
@@ -292,7 +410,10 @@ function scheduleReconnect() {
     reconnectTimer = null;
     log.info('Attempting Discord RPC reconnect...');
     const savedAppId = store.get('discordAppId', DEFAULT_DISCORD_APP_ID);
-    connectDiscord(savedAppId);
+    const instances = getDiscordInstances();
+    for (const inst of instances) {
+      connectDiscord(inst.id, savedAppId);
+    }
   }, delay);
 }
 
@@ -354,7 +475,18 @@ app.whenReady().then(() => {
   createTray();
 
   const savedAppId = store.get('discordAppId', DEFAULT_DISCORD_APP_ID);
-  connectDiscord(savedAppId);
+  const savedType = store.get('selectedDiscordType', 'discord');
+
+  // Auto-detect and connect to Discord
+  const instances = getDiscordInstances();
+  if (instances.length > 0) {
+    // Connect to the saved type if available, otherwise first available
+    const typeToConnect = instances.find((i) => i.id === savedType) ? savedType : instances[0].id;
+    connectDiscord(typeToConnect, savedAppId);
+  } else {
+    // No Discord running - still store settings for when it starts
+    log.info('No Discord instances detected. Will auto-connect when Discord starts.');
+  }
 
   registerGlobalShortcuts();
 
@@ -378,7 +510,6 @@ app.on('before-quit', () => {
   stopMediaServer();
   disconnectDiscord();
 });
-
 function registerGlobalShortcuts() {
   if (globalShortcutsRegistered) return;
   try {
@@ -454,14 +585,28 @@ ipcMain.handle('clear-presence', async (event) => {
   return { success: true };
 });
 
-ipcMain.handle('connect-discord', async (event, appId) => {
-  disconnectDiscord();
-  connectDiscord(appId || store.get('discordAppId', DEFAULT_DISCORD_APP_ID));
+ipcMain.handle('connect-discord', async (event, { discordType, appId }) => {
+  const targetType = discordType || store.get('selectedDiscordType', 'discord');
+  const targetAppId = appId || store.get('discordAppId', DEFAULT_DISCORD_APP_ID);
+  connectDiscord(targetType, targetAppId);
   return { success: true };
 });
 
-ipcMain.handle('disconnect-discord', async (event) => {
-  disconnectDiscord();
+ipcMain.handle('disconnect-discord', async (event, discordType) => {
+  disconnectDiscord(discordType);
+  return { success: true };
+});
+
+ipcMain.handle('get-discord-instances', async (event) => {
+  return getDiscordInstances();
+});
+
+ipcMain.handle('get-connected-instances', async (event) => {
+  return getConnectedInstances();
+});
+
+ipcMain.handle('save-selected-discord-type', async (event, discordType) => {
+  store.set('selectedDiscordType', discordType);
   return { success: true };
 });
 

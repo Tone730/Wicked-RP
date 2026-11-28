@@ -4,7 +4,7 @@
  */
 
 const DEFAULT_APP_ID = '1573677093601017927';
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.3.0';
 
 // ---------------------------------------------------------------- activity types
 const ACTIVITY_TYPES = [
@@ -785,6 +785,9 @@ let firstRunStep = 1;
 let firstRunTotal = 3;
 let gettingStartedStep = 1;
 let gettingStartedTotal = 3;
+let discordInstances = []; // detected Discord installations
+let connectedInstances = []; // currently connected Discord instances
+let selectedDiscordType = 'discord'; // user's preferred Discord type
 
 // ---------------------------------------------------------------- translations init
 function initTranslations() {
@@ -1154,12 +1157,14 @@ els.btnPreset.addEventListener('click', () => {
 // ---------------------------------------------------------------- RPC status
 wickedRP.onRpcStatus((data) => {
   rpcConnected = !!data.connected;
+  connectedInstances = data.instances || [];
   els.statusDot.classList.toggle('connected', rpcConnected);
   els.statusDot.classList.toggle('disconnected', !rpcConnected);
   els.statusText.textContent = rpcConnected ? t('connected') : t('disconnected');
   els.btnConnect.style.display = rpcConnected ? 'none' : 'inline-flex';
   els.btnDisconnect.style.display = rpcConnected ? 'flex' : 'none';
   updatePreview(readForm(), rpcConnected);
+  renderDiscordInstances();
 
   if (rpcConnected && autoApplyPending) {
     autoApplyPending = false;
@@ -1196,7 +1201,8 @@ els.btnConnect.addEventListener('click', async () => {
     return;
   }
   try {
-    await wickedRP.connectDiscord(appId);
+    await wickedRP.connectDiscord({ discordType: selectedDiscordType, appId });
+    selectDiscordType(selectedDiscordType);
   } catch (err) {
     showToast(t('failedToConnect') + ' ' + err.message, 'error');
   }
@@ -1204,7 +1210,7 @@ els.btnConnect.addEventListener('click', async () => {
 
 els.btnDisconnect.addEventListener('click', async () => {
   try {
-    await wickedRP.disconnectDiscord();
+    await wickedRP.disconnectDiscord(selectedDiscordType);
   } catch (err) {
     showToast(t('failedToDisconnect') + ' ' + err.message, 'error');
   }
@@ -1224,6 +1230,15 @@ if (els.btnCopyAppId) {
   });
 }
 
+// Discord type selector
+const discordTypeSelect = document.getElementById('discord-type-select');
+if (discordTypeSelect) {
+  discordTypeSelect.value = selectedDiscordType;
+  discordTypeSelect.addEventListener('change', (e) => {
+    selectDiscordType(e.target.value);
+  });
+}
+
 // Dev portal button
 if (els.btnDevPortal) {
   els.btnDevPortal.addEventListener('click', () => {
@@ -1240,10 +1255,12 @@ async function loadProfiles() {
   els.settingAppId.value = settings.discordAppId || DEFAULT_APP_ID;
   currentTheme = settings.theme || 'dark';
   currentLang = settings.language || 'en';
+  selectedDiscordType = settings.selectedDiscordType || 'discord';
   if (els.settingLang) els.settingLang.value = currentLang;
   applyTheme(currentTheme);
   applyTranslations();
   renderProfiles();
+  await loadDiscordInstances();
   if (activeProfileId) {
     const profile = profiles.find((p) => p.id === activeProfileId);
     if (profile) {
@@ -1252,6 +1269,50 @@ async function loadProfiles() {
     }
   }
 }
+
+// ---------------------------------------------------------------- Discord instances
+async function loadDiscordInstances() {
+  try {
+    discordInstances = await wickedRP.getDiscordInstances();
+    connectedInstances = await wickedRP.getConnectedInstances();
+    renderDiscordInstances();
+  } catch (e) {
+    console.error('Failed to load Discord instances:', e.message);
+  }
+}
+
+function renderDiscordInstances() {
+  let statusEl = document.getElementById('discord-auto-status');
+  if (!statusEl) {
+    statusEl = document.createElement('div');
+    statusEl.id = 'discord-auto-status';
+    statusEl.className = 'discord-auto-status';
+    const statusCard = document.querySelector('.status-card');
+    if (statusCard) statusCard.parentNode.insertBefore(statusEl, statusCard.nextSibling);
+  }
+
+  const runningCount = discordInstances.length;
+  const connectedCount = connectedInstances.filter((i) => i.connected).length;
+
+  if (runningCount === 0) {
+    statusEl.innerHTML = '<span style="color:var(--text-dim);font-size:11px;">No Discord detected</span>';
+    statusEl.style.display = 'block';
+  } else {
+    const names = discordInstances.map((d) => d.name).join(', ');
+    const connBadge = connectedCount > 0 ? ` <span style="color:var(--success);font-weight:bold;">(${connectedCount} connected)</span>` : '';
+    statusEl.innerHTML = `<span style="color:var(--text-muted);font-size:11px;">Discord: ${names}${connBadge}</span>`;
+    statusEl.style.display = 'block';
+  }
+}
+
+function selectDiscordType(type) {
+  selectedDiscordType = type;
+  wickedRP.saveSelectedDiscordType(type);
+  renderDiscordInstances();
+  showToast(`Selected ${type.charAt(0).toUpperCase() + type.slice(1)} as default Discord`, 'info');
+}
+
+// ---------------------------------------------------------------- renderProfiles (existing)
 
 function renderProfiles() {
   els.profilesList.innerHTML = '';
