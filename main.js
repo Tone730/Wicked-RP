@@ -419,6 +419,7 @@ ipcMain.on('get-stored-settings', (event) => {
     activeProfile: store.get('activeProfile', null),
     startOnBoot: store.get('startOnBoot', false),
     minimizeToTray: store.get('minimizeToTray', true),
+    autoApply: store.get('autoApply', true),
     theme: store.get('theme', 'dark'),
     language: store.get('language', 'en'),
     mediaList: getMediaList(),
@@ -435,6 +436,7 @@ ipcMain.handle('save-settings', async (event, settings) => {
     app.setLoginItemSettings({ openAtLogin: settings.startOnBoot });
   }
   if (settings.minimizeToTray !== undefined) store.set('minimizeToTray', settings.minimizeToTray);
+  if (settings.autoApply !== undefined) store.set('autoApply', settings.autoApply);
   if (settings.theme !== undefined) store.set('theme', settings.theme);
   if (settings.language !== undefined) store.set('language', settings.language);
   return { success: true };

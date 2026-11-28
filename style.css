@@ -713,6 +713,96 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
   font-size: 13px;
 }
 
+/* Activity Type Selector */
+.activity-type-select {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.activity-type-select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Getting Started Card */
+.getting-started-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.gs-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.gs-step {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: var(--transition);
+}
+.gs-step.gs-active {
+  border-color: var(--border-focus);
+  background: rgba(124, 58, 237, 0.08);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.gs-step.gs-complete {
+  opacity: 0.6;
+  border-color: var(--success);
+  background: rgba(34, 197, 94, 0.06);
+}
+.gs-step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.gs-step.gs-active .gs-step-number {
+  background: var(--accent);
+  color: #fff;
+}
+.gs-step.gs-complete .gs-step-number {
+  background: var(--success);
+  color: #fff;
+}
+.gs-step-content h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.gs-step-content p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+.gs-step-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
 /* ======================================================================== */
 /* Profiles                                                                 */
 /* ======================================================================== */

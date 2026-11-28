@@ -1,11 +1,19 @@
 /**
- * Wicked RP — renderer process (Production v2.1)
- * Full UI logic: presence, profiles, media manager, presets, themes, settings,
- * translations, about dialog, help system, keyboard shortcuts, import/export.
+ * Wicked RP — renderer process (Production v2.2)
+ * Full UI logic with in-app guidance, validation, activity types, and expanded features.
  */
 
 const DEFAULT_APP_ID = '1573677093601017927';
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
+
+// ---------------------------------------------------------------- activity types
+const ACTIVITY_TYPES = [
+  { id: 'playing', name: 'Playing', icon: '🎮', details: 'Gaming', state: 'Playing an epic game' },
+  { id: 'streaming', name: 'Streaming', icon: '🔴', details: 'Streaming', state: 'Live on Twitch', url: 'https://twitch.tv/' },
+  { id: 'listening', name: 'Listening to Music', icon: '🎵', details: 'Listening to Music', state: 'Favorite playlist' },
+  { id: 'watching', name: 'Watching', icon: '📺', details: 'Watching', state: 'Great movie' },
+  { id: 'competing', name: 'Competing', icon: '🏆', details: 'Competing', state: 'Ranked match' },
+];
 
 // ---------------------------------------------------------------- translations (i18n)
 const TRANSLATIONS = {
@@ -22,20 +30,25 @@ const TRANSLATIONS = {
     disconnect: 'Disconnect',
     appIdLabel: 'Application ID',
     appIdPlaceholder: 'e.g. 1573677093601017927',
+    appIdCopyHint: 'Copy to clipboard',
+    devPortalBtn: 'Dev Portal',
+    devPortalTitle: 'Open Discord Developer Portal',
+    devPortalDesc: 'Create your Discord application and upload custom images here.',
+    activityType: 'Activity Type',
     activityName: 'Activity Name',
     activityNameReq: '*',
     details: 'Details',
     detailsPlaceholder: 'What are you doing?',
     overrideAppId: 'Override App ID',
     startTime: 'Start Time (Unix seconds)',
-    startTimeHint: 'Unix timestamp in seconds. Leave blank to start now.',
+    startTimeHint: 'Leave blank to start now',
     endTime: 'End Time (Unix seconds)',
-    endTimeHint: 'Shows a countdown when set.',
+    endTimeHint: 'Shows a countdown when set',
     largeImageKey: 'Large Image Key',
-    largeImageHint: 'Select from Media Manager or enter a Discord asset key.',
+    largeImageHint: 'Select from Media Manager or enter Discord asset key',
     largeImageText: 'Large Image Hover Text',
     smallImageKey: 'Small Image Key',
-    smallImageHint: 'Small badge shown on the corner.',
+    smallImageHint: 'Small badge on the corner',
     smallImageText: 'Small Image Hover Text',
     button1Label: 'Button 1 Label',
     button1Url: 'Button 1 URL',
@@ -65,11 +78,14 @@ const TRANSLATIONS = {
     startOnBootDesc: 'Launch Wicked RP automatically when you log into Windows.',
     minimizeToTray: 'Minimize to Tray',
     minimizeToTrayDesc: 'Keep Wicked RP running in the system tray when you close the window.',
+    autoApply: 'Auto-apply on Startup',
+    autoApplyDesc: 'Restore your last presence when Wicked RP starts.',
     defaultAppId: 'Default Application ID',
-    defaultAppIdDesc: 'Get one at the Discord Developer Portal. Custom image assets require a verified Discord application.',
+    defaultAppIdDesc: 'Create one at the Discord Developer Portal. Custom images require a verified app.',
+    language: 'Language',
     appearance: 'Appearance',
     comingSoon: 'Coming Soon',
-    comingSoonDesc: 'Music bot status, server events, preset scheduler, cloud sync, and game auto-detection planned for v2.2.',
+    comingSoonDesc: 'Music bot status, server events, preset scheduler, cloud sync, and game auto-detection planned for v2.3.',
     uploadMedia: 'Upload Image/Video',
     uploadHint: 'JPG, PNG, GIF, WebP, MP4, WebM — max 25MB each',
     allMedia: 'All Media',
@@ -82,7 +98,7 @@ const TRANSLATIONS = {
     help: 'Help & Manual',
     discordServer: 'Discord Server',
     github: 'GitHub',
-    version: 'v2.1.0',
+    version: 'v2.2.0',
     settingsSaved: 'Settings saved.',
     presenceApplied: 'Presence applied to Discord.',
     presenceCleared: 'Presence cleared.',
@@ -98,7 +114,7 @@ const TRANSLATIONS = {
     mediaUploaded: 'Media uploaded successfully.',
     aboutTitle: 'About Wicked RP',
     aboutDesc: 'A modern, customizable Discord Rich Presence manager. Rebranded remake of Custom RP.',
-    aboutVersion: 'Version 2.1.0',
+    aboutVersion: 'Version 2.2.0',
     aboutAuthor: 'Wicked Development',
     aboutLicense: 'MIT License',
     aboutDiscord: 'Built with Electron and discord-rpc',
@@ -122,6 +138,41 @@ const TRANSLATIONS = {
     exportSuccess: 'Profiles exported successfully.',
     importSuccess: 'Profiles imported successfully.',
     importInvalid: 'Invalid import file.',
+    skip: 'Skip',
+    next: 'Next',
+    finish: 'Finish',
+    general: 'General',
+    discord: 'Discord',
+    playing: 'Playing',
+    somethingAwesome: 'Something awesome',
+    welcomeTitle: 'Welcome to Wicked RP',
+    welcomeDesc: 'Let\'s set up your Discord Rich Presence in just a few steps.',
+    step1Title: 'Connect to Discord',
+    step1Desc: 'Enter your Discord Application ID to connect.',
+    step1Hint: 'Get your Application ID at the Discord Developer Portal.',
+    step2Title: 'Choose Your Activity',
+    step2Desc: 'Pick what you\'re doing and customize how it appears on Discord.',
+    step3Title: 'You\'re Ready!',
+    step3Desc: 'Wicked RP is configured. Your presence will auto-restore on startup.',
+    gettingStarted: 'Getting Started',
+    gettingStartedDesc: 'New to Wicked RP? Follow the steps below to set up your first presence.',
+    step: 'Step',
+    of: 'of',
+    invalidAppId: 'Please enter a valid Application ID (18-19 digits).',
+    invalidStartTime: 'Please enter a valid start time (Unix seconds).',
+    invalidEndTime: 'Please enter a valid end time (Unix seconds).',
+    endBeforeStart: 'End time must be after start time.',
+    copySuccess: 'Copied to clipboard!',
+    discordNotRunning: 'Discord desktop is not running. Please start Discord first.',
+    testConnection: 'Test Connection',
+    connectionTested: 'Connection successful!',
+    activityTypes: {
+      playing: 'Playing',
+      streaming: 'Streaming',
+      listening: 'Listening to Music',
+      watching: 'Watching',
+      competing: 'Competing',
+    },
   },
   es: {
     appName: 'Wicked RP',
@@ -136,20 +187,25 @@ const TRANSLATIONS = {
     disconnect: 'Desconectar',
     appIdLabel: 'ID de Aplicación',
     appIdPlaceholder: 'ej. 1573677093601017927',
+    appIdCopyHint: 'Copiar al portapapeles',
+    devPortalBtn: 'Portal Dev',
+    devPortalTitle: 'Abrir Portal para Desarrolladores de Discord',
+    devPortalDesc: 'Crea tu aplicación de Discord y sube imágenes personalizadas aquí.',
+    activityType: 'Tipo de Actividad',
     activityName: 'Nombre de Actividad',
     activityNameReq: '*',
     details: 'Detalles',
     detailsPlaceholder: '¿Qué estás haciendo?',
     overrideAppId: 'Anular ID de App',
     startTime: 'Hora de Inicio (segundos Unix)',
-    startTimeHint: 'Marca de tiempo Unix en segundos. Deja en blanco para comenzar ahora.',
+    startTimeHint: 'Deja en blanco para comenzar ahora',
     endTime: 'Hora de Fin (segundos Unix)',
-    endTimeHint: 'Muestra una cuenta regresiva cuando se configura.',
+    endTimeHint: 'Muestra una cuenta regresiva cuando se configura',
     largeImageKey: 'Clave de Imagen Grande',
     largeImageHint: 'Selecciona del Gestor de Medios o ingresa una clave de activo de Discord.',
     largeImageText: 'Texto de Imagen Grande (al pasar el mouse)',
     smallImageKey: 'Clave de Imagen Pequeña',
-    smallImageHint: 'Insignia pequeña mostrada en la esquina.',
+    smallImageHint: 'Insignia pequeña en la esquina',
     smallImageText: 'Texto de Imagen Pequeña',
     button1Label: 'Etiqueta de Botón 1',
     button1Url: 'URL de Botón 1',
@@ -179,11 +235,14 @@ const TRANSLATIONS = {
     startOnBootDesc: 'Inicia Wicked RP automáticamente al iniciar sesión en Windows.',
     minimizeToTray: 'Minimizar a la Bandeja',
     minimizeToTrayDesc: 'Mantén Wicked RP ejecutándose en la bandeja del sistema al cerrar la ventana.',
+    autoApply: 'Aplicar automáticamente al Inicio',
+    autoApplyDesc: 'Restaura tu última presencia al iniciar Wicked RP.',
     defaultAppId: 'ID de Aplicación Predeterminada',
-    defaultAppIdDesc: 'Obtén uno en el Portal para Desarrolladores de Discord. Los recursos de imagen personalizados requieren una aplicación verificada de Discord.',
+    defaultAppIdDesc: 'Crea uno en el Portal para Desarrolladores de Discord. Las imágenes personalizadas requieren una aplicación verificada.',
+    language: 'Idioma',
     appearance: 'Apariencia',
     comingSoon: 'Próximamente',
-    comingSoonDesc: 'Estado de bot de música, eventos de servidor, programador de ajustes, sincronización en la nube y detección automática de juegos planeados para v2.2.',
+    comingSoonDesc: 'Estado de bot de música, eventos de servidor, programador de ajustes, sincronización en la nube y detección automática de juegos planeados para v2.3.',
     uploadMedia: 'Subir Imagen/Video',
     uploadHint: 'JPG, PNG, GIF, WebP, MP4, WebM — máximo 25MB cada uno',
     allMedia: 'Todos los Medios',
@@ -196,7 +255,7 @@ const TRANSLATIONS = {
     help: 'Ayuda y Manual',
     discordServer: 'Servidor de Discord',
     github: 'GitHub',
-    version: 'v2.1.0',
+    version: 'v2.2.0',
     settingsSaved: 'Configuración guardada.',
     presenceApplied: 'Presencia aplicada a Discord.',
     presenceCleared: 'Presencia limpiada.',
@@ -212,7 +271,7 @@ const TRANSLATIONS = {
     mediaUploaded: 'Medio subido correctamente.',
     aboutTitle: 'Acerca de Wicked RP',
     aboutDesc: 'Un gestor moderno y personalizable de Presencia de Discord. Remake rebranding de Custom RP.',
-    aboutVersion: 'Versión 2.1.0',
+    aboutVersion: 'Versión 2.2.0',
     aboutAuthor: 'Wicked Development',
     aboutLicense: 'Licencia MIT',
     aboutDiscord: 'Construido con Electron y discord-rpc',
@@ -243,6 +302,34 @@ const TRANSLATIONS = {
     discord: 'Discord',
     playing: 'Jugando',
     somethingAwesome: 'Haciendo algo increíble',
+    welcomeTitle: 'Bienvenido a Wicked RP',
+    welcomeDesc: 'Configuraremos tu Presencia de Discord en pocos pasos.',
+    step1Title: 'Conectar a Discord',
+    step1Desc: 'Ingresa tu ID de Aplicación de Discord para conectarte.',
+    step1Hint: 'Obtén tu ID de Aplicación en el Portal para Desarrolladores de Discord.',
+    step2Title: 'Elige tu Actividad',
+    step2Desc: 'Elige qué estás haciendo y personaliza cómo aparece en Discord.',
+    step3Title: '¡Listo!',
+    step3Desc: 'Wicked RP está configurado. Tu presencia se restaurará automáticamente al iniciar.',
+    gettingStarted: 'Comenzando',
+    gettingStartedDesc: '¿Nuevo en Wicked RP? Sigue los pasos a continuación para configurar tu primera presencia.',
+    step: 'Paso',
+    of: 'de',
+    invalidAppId: 'Ingresa un ID de Aplicación válido (18-19 dígitos).',
+    invalidStartTime: 'Ingresa una hora de inicio válida (segundos Unix).',
+    invalidEndTime: 'Ingresa una hora de fin válida (segundos Unix).',
+    endBeforeStart: 'La hora de fin debe ser después de la hora de inicio.',
+    copySuccess: '¡Copiado al portapapeles!',
+    discordNotRunning: 'Discord de escritorio no está en ejecución. Inicia Discord primero.',
+    testConnection: 'Probar Conexión',
+    connectionTested: '¡Conexión exitosa!',
+    activityTypes: {
+      playing: 'Jugando',
+      streaming: 'Transmitiendo',
+      listening: 'Escuchando Música',
+      watching: 'Viendo',
+      competing: 'Competiendo',
+    },
   },
   fr: {
     appName: 'Wicked RP',
@@ -257,20 +344,25 @@ const TRANSLATIONS = {
     disconnect: 'Déconnecter',
     appIdLabel: 'ID Application',
     appIdPlaceholder: 'ex. 1573677093601017927',
+    appIdCopyHint: 'Copier dans le presse-papiers',
+    devPortalBtn: 'Portail Dev',
+    devPortalTitle: 'Ouvrir le Portail Développeur Discord',
+    devPortalDesc: 'Créez votre application Discord et uploadez des images personnalisées ici.',
+    activityType: 'Type d\'Activité',
     activityName: 'Nom d\'Activité',
     activityNameReq: '*',
     details: 'Détails',
     detailsPlaceholder: 'Que faites-vous ?',
     overrideAppId: 'Remplacer ID App',
     startTime: 'Heure de Début (secondes Unix)',
-    startTimeHint: 'Horodatage Unix en secondes. Laissez vide pour commencer maintenant.',
+    startTimeHint: 'Laissez vide pour commencer maintenant',
     endTime: 'Heure de Fin (secondes Unix)',
-    endTimeHint: 'Affiche un compte à rebours quand défini.',
+    endTimeHint: 'Affiche un compte à rebours quand défini',
     largeImageKey: 'Clé Image Grande',
     largeImageHint: 'Sélectionnez depuis le Gestionnaire de Média ou entrez une clé d\'asset Discord.',
     largeImageText: 'Texte Image Grande (survol)',
     smallImageKey: 'Clé Image Petite',
-    smallImageHint: 'Petit badge affiché dans le coin.',
+    smallImageHint: 'Petit badge dans le coin',
     smallImageText: 'Texte Image Petite',
     button1Label: 'Libellé Bouton 1',
     button1Url: 'URL Bouton 1',
@@ -300,11 +392,14 @@ const TRANSLATIONS = {
     startOnBootDesc: 'Lance Wicked RP automatiquement à l\'ouverture de session Windows.',
     minimizeToTray: 'Réduire dans le Plateau',
     minimizeToTrayDesc: 'Garde Wicked RP en cours d\'exécution dans le plateau système quand vous fermez la fenêtre.',
+    autoApply: 'Appliquer automatiquement au Démarrage',
+    autoApplyDesc: 'Restaure votre dernière présence au démarrage de Wicked RP.',
     defaultAppId: 'ID Application Par Défaut',
-    defaultAppIdDesc: 'Obtenez-en un sur le Portail Developpeur Discord. Les assets image personnalisés nécessitent une application Discord vérifiée.',
+    defaultAppIdDesc: 'Créez-en un sur le Portail Développeur Discord. Les images personnalisées nécessitent une application vérifiée.',
+    language: 'Langue',
     appearance: 'Apparence',
     comingSoon: 'Bientôt',
-    comingSoonDesc: 'État du bot musique, événements serveur, planificateur de préréglages, synchronisation cloud et détection automatique de jeux prévus pour v2.2.',
+    comingSoonDesc: 'État du bot musique, événements serveur, planificateur de préréglages, synchronisation cloud et détection automatique de jeux prévus pour v2.3.',
     uploadMedia: 'Télécharger Image/Vidéo',
     uploadHint: 'JPG, PNG, GIF, WebP, MP4, WebM — max 25Mo chacun',
     allMedia: 'Tous les Médias',
@@ -317,7 +412,7 @@ const TRANSLATIONS = {
     help: 'Aide & Manuel',
     discordServer: 'Serveur Discord',
     github: 'GitHub',
-    version: 'v2.1.0',
+    version: 'v2.2.0',
     settingsSaved: 'Paramètres enregistrés.',
     presenceApplied: 'Présence appliquée à Discord.',
     presenceCleared: 'Présence effacée.',
@@ -333,7 +428,7 @@ const TRANSLATIONS = {
     mediaUploaded: 'Média téléchargé avec succès.',
     aboutTitle: 'À propos de Wicked RP',
     aboutDesc: 'Un gestionnaire moderne et personnalisable de Présence Discord. Remake rebrandé de Custom RP.',
-    aboutVersion: 'Version 2.1.0',
+    aboutVersion: 'Version 2.2.0',
     aboutAuthor: 'Wicked Development',
     aboutLicense: 'Licence MIT',
     aboutDiscord: 'Construit avec Electron et discord-rpc',
@@ -350,7 +445,7 @@ const TRANSLATIONS = {
     helpSetup3: '3. Cliquez sur Connecter (assurez-vous que Discord bureau est en cours)',
     helpSetup4: '4. Configurez votre présence et cliquez sur Appliquer Présence',
     helpImages: 'Images Personnalisées',
-    helpImages1: 'Les images nécessitent un téléchargement sur Portail Developpeur Discord → Présence Discord → Assets Artistiques',
+    helpImages1: 'Les images nécessitent un téléchargement sur Portail Développeur Discord → Présence Discord → Assets Artistiques',
     helpImages2: 'Copiez le Nom de l\'asset dans le champ Clé Image de Wicked RP',
     exportProfiles: 'Exporter Profils',
     importProfiles: 'Importer Profils',
@@ -364,6 +459,34 @@ const TRANSLATIONS = {
     discord: 'Discord',
     playing: 'En train de jouer',
     somethingAwesome: 'Faisant quelque chose d\'incroyable',
+    welcomeTitle: 'Bienvenue sur Wicked RP',
+    welcomeDesc: 'Configurons votre Présence Discord en quelques étapes.',
+    step1Title: 'Se connecter à Discord',
+    step1Desc: 'Entrez votre ID Application Discord pour vous connecter.',
+    step1Hint: 'Obtenez votre ID Application sur le Portail Développeur Discord.',
+    step2Title: 'Choisissez votre Activité',
+    step2Desc: 'Choisissez ce que vous faites et personnalisez son apparence sur Discord.',
+    step3Title: 'C\'est prêt !',
+    step3Desc: 'Wicked RP est configuré. Votre présence se restaurera automatiquement au démarrage.',
+    gettingStarted: 'Bien démarrer',
+    gettingStartedDesc: 'Nouveau sur Wicked RP ? Suivez les étapes ci-dessous pour configurer votre première présence.',
+    step: 'Étape',
+    of: 'sur',
+    invalidAppId: 'Veuillez entrer un ID Application valide (18-19 chiffres).',
+    invalidStartTime: 'Veuillez entrer une heure de début valide (secondes Unix).',
+    invalidEndTime: 'Veuillez entrer une heure de fin valide (secondes Unix).',
+    endBeforeStart: 'L\'heure de fin doit être après l\'heure de début.',
+    copySuccess: 'Copié dans le presse-papiers !',
+    discordNotRunning: 'Discord bureau n\'est pas en cours d\'exécution. Lancez Discord d\'abord.',
+    testConnection: 'Tester la Connexion',
+    connectionTested: 'Connexion réussie !',
+    activityTypes: {
+      playing: 'En train de jouer',
+      streaming: 'En streaming',
+      listening: 'En train d\'écouter de la musique',
+      watching: 'En train de regarder',
+      competing: 'En compétition',
+    },
   },
   de: {
     appName: 'Wicked RP',
@@ -378,20 +501,25 @@ const TRANSLATIONS = {
     disconnect: 'Trennen',
     appIdLabel: 'Anwendungs-ID',
     appIdPlaceholder: 'z. B. 1573677093601017927',
+    appIdCopyHint: 'In Zwischenkopiere',
+    devPortalBtn: 'Dev-Portal',
+    devPortalTitle: 'Discord-Entwicklerportal öffnen',
+    devPortalDesc: 'Erstelle deine Discord-Anwendung und lade benutzerdefinierte Bilder hier hoch.',
+    activityType: 'Aktivitätstyp',
     activityName: 'Aktivitätsname',
     activityNameReq: '*',
     details: 'Details',
     detailsPlaceholder: 'Was machst du?',
     overrideAppId: 'App-ID überschreiben',
     startTime: 'Startzeit (Unix-Sekunden)',
-    startTimeHint: 'Unix-Zeitstempel in Sekunden. Leer lassen, um jetzt zu starten.',
+    startTimeHint: 'Leer lassen, um jetzt zu starten',
     endTime: 'Endzeit (Unix-Sekunden)',
-    endTimeHint: 'Zeigt einen Countdown an, wenn gesetzt.',
+    endTimeHint: 'Zeigt einen Countdown an, wenn gesetzt',
     largeImageKey: 'Großer Bildschlüssel',
     largeImageHint: 'Aus Medien-Manager auswählen oder Discord-Asset-Schlüssel eingeben.',
     largeImageText: 'Großes Bild-Hover-Text',
     smallImageKey: 'Kleiner Bildschlüssel',
-    smallImageHint: 'Kleines Abzeichen, das in der Ecke angezeigt wird.',
+    smallImageHint: 'Kleines Abzeichen in der Ecke',
     smallImageText: 'Kleines Bild-Hover-Text',
     button1Label: 'Beschriftung Schaltfläche 1',
     button1Url: 'URL Schaltfläche 1',
@@ -421,11 +549,14 @@ const TRANSLATIONS = {
     startOnBootDesc: 'Wicked RP automatisch starten, wenn du dich bei Windows anmeldest.',
     minimizeToTray: 'In die Leiste minimieren',
     minimizeToTrayDesc: 'Wicked RP im System-Tray laufen lassen, wenn du das Fenster schließt.',
+    autoApply: 'Beim Start automatisch anwenden',
+    autoApplyDesc: 'Letzte Anwesenheit beim Start von Wicked RP wiederherstellen.',
     defaultAppId: 'Standard-Anwendungs-ID',
-    defaultAppIdDesc: 'Erstelle eine im Discord-Entwicklerportal. Benutzerdefinierte Bild-Assets erfordern eine verifizierte Discord-Anwendung.',
+    defaultAppIdDesc: 'Erstelle eine im Discord-Entwicklerportal. Benutzerdefinierte Bilder erfordern eine verifizierte App.',
+    language: 'Sprache',
     appearance: 'Erscheinungsbild',
     comingSoon: 'Demnächst',
-    comingSoonDesc: 'Musik-Bot-Status, Server-Events, Voreinigstellungsplaner, Cloud-Sync und Spielerkennung geplant für v2.2.',
+    comingSoonDesc: 'Musik-Bot-Status, Server-Events, Voreinigstellungsplaner, Cloud-Sync und Spielerkennung geplant für v2.3.',
     uploadMedia: 'Bild/Video hochladen',
     uploadHint: 'JPG, PNG, GIF, WebP, MP4, WebM — max. 25MB pro Datei',
     allMedia: 'Alle Medien',
@@ -438,7 +569,7 @@ const TRANSLATIONS = {
     help: 'Hilfe & Handbuch',
     discordServer: 'Discord-Server',
     github: 'GitHub',
-    version: 'v2.1.0',
+    version: 'v2.2.0',
     settingsSaved: 'Einstellungen gespeichert.',
     presenceApplied: 'Anwesenheit auf Discord angewendet.',
     presenceCleared: 'Anwesenheit gelöscht.',
@@ -454,7 +585,7 @@ const TRANSLATIONS = {
     mediaUploaded: 'Medium erfolgreich hochgeladen.',
     aboutTitle: 'Über Wicked RP',
     aboutDesc: 'Ein moderner, anpassbarer Discord-Anwesenheitsmanager. Rebranding-Neuauflage von Custom RP.',
-    aboutVersion: 'Version 2.1.0',
+    aboutVersion: 'Version 2.2.0',
     aboutAuthor: 'Wicked Development',
     aboutLicense: 'MIT-Lizenz',
     aboutDiscord: 'Erstellt mit Electron und discord-rpc',
@@ -485,6 +616,34 @@ const TRANSLATIONS = {
     discord: 'Discord',
     playing: 'Spielt',
     somethingAwesome: 'Macht etwas Tolles',
+    welcomeTitle: 'Willkommen bei Wicked RP',
+    welcomeDesc: 'Richten wir deine Discord-Anwesenheit in wenigen Schritten ein.',
+    step1Title: 'Mit Discord verbinden',
+    step1Desc: 'Gib deine Discord-Anwendungs-ID ein, um dich zu verbinden.',
+    step1Hint: 'Erhalte deine Anwendungs-ID im Discord-Entwicklerportal.',
+    step2Title: 'Aktivität wählen',
+    step2Desc: 'Wähle aus, was du tust, und passe an, wie es auf Discord erscheint.',
+    step3Title: 'Fertig!',
+    step3Desc: 'Wicked RP ist konfiguriert. Deine Anwesenheit wird beim Start automatisch wiederhergestellt.',
+    gettingStarted: 'Erste Schritte',
+    gettingStartedDesc: 'Neu bei Wicked RP? Folge den unten stehenden Schritten, um deine erste Präsenz zu konfigurieren.',
+    step: 'Schritt',
+    of: 'von',
+    invalidAppId: 'Bitte gib eine gültige Anwendungs-ID ein (18-19 Ziffern).',
+    invalidStartTime: 'Bitte gib eine gültige Startzeit ein (Unix-Sekunden).',
+    invalidEndTime: 'Bitte gib eine gültige Endzeit ein (Unix-Sekunden).',
+    endBeforeStart: 'Die Endzeit muss nach der Startzeit liegen.',
+    copySuccess: 'In Zwischenkopiere!',
+    discordNotRunning: 'Discord-Desktop wird nicht ausgeführt. Starte Discord zuerst.',
+    testConnection: 'Verbindung testen',
+    connectionTested: 'Verbindung erfolgreich!',
+    activityTypes: {
+      playing: 'Spielt',
+      streaming: 'Streamt',
+      listening: 'Hört Musik',
+      watching: 'Schaut',
+      competing: 'Wettstreitet',
+    },
   },
 };
 
@@ -527,10 +686,13 @@ const els = {
   discordAppId: document.getElementById('discord-app-id'),
   btnConnect: document.getElementById('btn-connect'),
   btnDisconnect: document.getElementById('btn-disconnect'),
+  btnCopyAppId: document.getElementById('btn-copy-app-id'),
+  btnDevPortal: document.getElementById('btn-dev-portal'),
   navItems: document.querySelectorAll('.nav-item'),
   views: document.querySelectorAll('.view'),
 
   // Presence form
+  activityTypeSelect: document.getElementById('activity-type-select'),
   fieldDetails: document.getElementById('field-details'),
   fieldState: document.getElementById('field-state'),
   fieldAppId: document.getElementById('field-app-id'),
@@ -577,18 +739,19 @@ const els = {
   btnSaveProfile: document.getElementById('btn-save-profile'),
   profilesList: document.getElementById('profiles-list'),
   emptyProfiles: document.getElementById('empty-profiles'),
+  btnExportProfiles: document.getElementById('btn-export-profiles'),
+  btnImportProfiles: document.getElementById('btn-import-profiles'),
+  importFile: document.getElementById('import-file'),
 
   // Settings
   settingStartOnBoot: document.getElementById('setting-start-on-boot'),
   settingMinimizeToTray: document.getElementById('setting-minimize-to-tray'),
+  settingAutoApply: document.getElementById('setting-auto-apply'),
   settingAppId: document.getElementById('setting-app-id'),
   settingLang: document.getElementById('setting-lang'),
   settingTheme: document.getElementById('setting-theme'),
   btnSaveSettings: document.getElementById('btn-save-settings'),
   themeCards: document.querySelectorAll('.theme-card'),
-
-  // Discord portal
-  btnDiscordPortal: document.getElementById('btn-discord-portal'),
 
   // Modals
   aboutModal: document.getElementById('about-modal'),
@@ -598,16 +761,15 @@ const els = {
   btnHelp: document.getElementById('btn-help'),
   btnCloseAbout: document.getElementById('btn-close-about'),
   btnCloseHelp: document.getElementById('btn-close-help'),
+  btnCloseFirstRun: document.getElementById('btn-close-first-run'),
   btnFirstRunNext: document.getElementById('btn-first-run-next'),
   btnFirstRunSkip: document.getElementById('btn-first-run-skip'),
   firstRunStep: document.getElementById('first-run-step'),
   firstRunAppId: document.getElementById('first-run-app-id'),
   firstRunConnect: document.getElementById('first-run-connect'),
 
-  // Import/Export
-  btnExportProfiles: document.getElementById('btn-export-profiles'),
-  btnImportProfiles: document.getElementById('btn-import-profiles'),
-  importFile: document.getElementById('import-file'),
+  // Getting started
+  gettingStartedCard: document.getElementById('getting-started-card'),
 };
 
 // ---------------------------------------------------------------- state
@@ -621,10 +783,11 @@ let presets = [];
 let currentTheme = 'dark';
 let firstRunStep = 1;
 let firstRunTotal = 3;
+let gettingStartedStep = 1;
+let gettingStartedTotal = 3;
 
 // ---------------------------------------------------------------- translations init
 function initTranslations() {
-  // Language selector
   if (els.settingLang) {
     els.settingLang.addEventListener('change', (e) => {
       setLang(e.target.value);
@@ -692,8 +855,8 @@ els.btnAbout.addEventListener('click', () => openModal(els.aboutModal));
 els.btnHelp.addEventListener('click', () => openModal(els.helpModal));
 els.btnCloseAbout.addEventListener('click', () => closeModal(els.aboutModal));
 els.btnCloseHelp.addEventListener('click', () => closeModal(els.helpModal));
+els.btnCloseFirstRun.addEventListener('click', () => closeModal(els.firstRunModal));
 
-// Close modals on backdrop click
 [els.aboutModal, els.helpModal, els.firstRunModal].forEach((modal) => {
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeModal(modal);
@@ -702,7 +865,6 @@ els.btnCloseHelp.addEventListener('click', () => closeModal(els.helpModal));
 
 // ---------------------------------------------------------------- first-run wizard
 function initFirstRun() {
-  // Step navigation
   els.btnFirstRunNext.addEventListener('click', () => {
     if (firstRunStep < firstRunTotal) {
       firstRunStep++;
@@ -732,14 +894,30 @@ function initFirstRun() {
 }
 
 function updateFirstRunUI() {
-  const progress = (firstRunStep / firstRunTotal) * 100;
-  // Simple visual progress - could be enhanced with a progress bar
-  els.btnFirstRunNext.textContent = firstRunStep < firstRunTotal ? 'Next' : 'Finish';
+  const stepEls = document.querySelectorAll('.first-run-step');
+  stepEls.forEach((el, idx) => {
+    el.classList.toggle('hidden', idx + 1 !== firstRunStep);
+  });
+  els.btnFirstRunNext.textContent = firstRunStep < firstRunTotal ? t('next') : t('finish');
+  const counter = document.getElementById('first-run-counter');
+  if (counter) counter.textContent = firstRunStep;
 }
 
-function storeSettingsFlag(key, value) {
-  // Store in settings via IPC - we'll just keep it in memory for this session
-  // In production this would be persisted
+// ---------------------------------------------------------------- getting started card
+function updateGettingStartedCard() {
+  if (!els.gettingStartedCard) return;
+  const stepEls = document.querySelectorAll('.gs-step');
+  stepEls.forEach((el, idx) => {
+    el.classList.toggle('gs-active', idx + 1 === gettingStartedStep);
+    el.classList.toggle('gs-complete', idx + 1 < gettingStartedStep);
+  });
+}
+
+function advanceGettingStarted() {
+  if (gettingStartedStep < gettingStartedTotal) {
+    gettingStartedStep++;
+    updateGettingStartedCard();
+  }
 }
 
 // ---------------------------------------------------------------- presence form
@@ -774,6 +952,25 @@ function readForm() {
   if (els.fieldSpectateSecret.value.trim()) activity.spectateSecret = els.fieldSpectateSecret.value.trim();
 
   return activity;
+}
+
+function validateForm(activity) {
+  if (!activity.details) {
+    return { valid: false, message: t('pleaseEnterActivity') };
+  }
+  if (activity.appId && !/^\d{18,19}$/.test(activity.appId)) {
+    return { valid: false, message: t('invalidAppId') };
+  }
+  if (activity.startTimestamp && isNaN(activity.startTimestamp)) {
+    return { valid: false, message: t('invalidStartTime') };
+  }
+  if (activity.endTimestamp && isNaN(activity.endTimestamp)) {
+    return { valid: false, message: t('invalidEndTime') };
+  }
+  if (activity.startTimestamp && activity.endTimestamp && activity.endTimestamp <= activity.startTimestamp) {
+    return { valid: false, message: t('endBeforeStart') };
+  }
+  return { valid: true, message: null };
 }
 
 function writeForm(activity) {
@@ -820,7 +1017,6 @@ function updatePreview(activity, connected) {
   }
   els.previewMeta.textContent = meta;
 
-  // Image
   const imgKey = activity.largeImageKey;
   if (imgKey) {
     const mediaItem = mediaList.find((m) => m.name === imgKey || m.path === imgKey);
@@ -839,7 +1035,6 @@ function updatePreview(activity, connected) {
     els.previewImage.innerHTML = '<div class="image-placeholder">No Image</div>';
   }
 
-  // Buttons
   els.previewButtons.innerHTML = '';
   if (activity.buttons && activity.buttons.length > 0) {
     activity.buttons.forEach((b) => {
@@ -850,7 +1045,6 @@ function updatePreview(activity, connected) {
     });
   }
 
-  // Status
   if (connected) {
     els.previewStatusBadge.classList.remove('offline');
     els.previewStatusBadge.classList.add('online');
@@ -864,13 +1058,15 @@ function updatePreview(activity, connected) {
 
 function applyPresence() {
   const activity = readForm();
-  if (!activity.details) {
-    showToast(t('pleaseEnterActivity'), 'error');
+  const validation = validateForm(activity);
+  if (!validation.valid) {
+    showToast(validation.message, 'error');
     return;
   }
   wickedRP.setPresence(activity);
   updatePreview(activity, rpcConnected);
   showToast(t('presenceApplied'), 'success');
+  advanceGettingStarted();
 }
 
 function clearPresence() {
@@ -893,6 +1089,21 @@ els.btnApplyForm.addEventListener('click', applyPresence);
 els.btnClear.addEventListener('click', clearPresence);
 els.btnClearForm.addEventListener('click', clearPresence);
 
+// Activity type selector
+els.activityTypeSelect.addEventListener('change', () => {
+  const typeId = els.activityTypeSelect.value;
+  const type = ACTIVITY_TYPES.find((t) => t.id === typeId);
+  if (type) {
+    els.fieldDetails.value = type.details;
+    els.fieldState.value = type.state;
+    if (type.url) {
+      els.fieldBtn1Label.value = 'Watch Stream';
+      els.fieldBtn1Url.value = type.url + 'example';
+    }
+    updatePreview(readForm(), rpcConnected);
+  }
+});
+
 // Real-time preview
 const formInputs = [
   els.fieldDetails, els.fieldState, els.fieldAppId, els.fieldStart, els.fieldEnd,
@@ -908,27 +1119,22 @@ formInputs.forEach((input) => {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-  // Ctrl+Enter to apply presence
   if (e.ctrlKey && e.key === 'Enter') {
     e.preventDefault();
     applyPresence();
   }
-  // Esc to clear presence
   if (e.key === 'Escape') {
     clearPresence();
   }
-  // F1 for help
   if (e.key === 'F1') {
     e.preventDefault();
     openModal(els.helpModal);
   }
-  // Ctrl+O for media manager
   if (e.ctrlKey && e.key.toLowerCase() === 'o') {
     e.preventDefault();
     showView('media');
     loadMedia();
   }
-  // Ctrl+S to save profile
   if (e.ctrlKey && e.key.toLowerCase() === 's') {
     e.preventDefault();
     els.btnSaveProfile.click();
@@ -985,27 +1191,16 @@ wickedRP.onPresenceCleared(() => {
 // ---------------------------------------------------------------- connect / disconnect
 els.btnConnect.addEventListener('click', async () => {
   const appId = els.discordAppId.value.trim();
+  if (!/^\d{18,19}$/.test(appId)) {
+    showToast(t('invalidAppId'), 'error');
+    return;
+  }
   try {
     await wickedRP.connectDiscord(appId);
   } catch (err) {
     showToast(t('failedToConnect') + ' ' + err.message, 'error');
   }
 });
-
-// Copy Application ID to clipboard
-els.btnCopyAppId = document.getElementById('btn-copy-app-id');
-if (els.btnCopyAppId) {
-  els.btnCopyAppId.addEventListener('click', async () => {
-    const appId = els.discordAppId.value.trim();
-    if (!appId) return;
-    try {
-      await navigator.clipboard.writeText(appId);
-      showToast('Application ID copied to clipboard.', 'success');
-    } catch (err) {
-      showToast('Failed to copy Application ID.', 'error');
-    }
-  });
-}
 
 els.btnDisconnect.addEventListener('click', async () => {
   try {
@@ -1015,10 +1210,26 @@ els.btnDisconnect.addEventListener('click', async () => {
   }
 });
 
-// Discord portal
-els.btnDiscordPortal.addEventListener('click', () => {
-  wickedRP.openUrl('https://discord.com/developers/applications');
-});
+// Copy Application ID
+if (els.btnCopyAppId) {
+  els.btnCopyAppId.addEventListener('click', async () => {
+    const appId = els.discordAppId.value.trim();
+    if (!appId) return;
+    try {
+      await navigator.clipboard.writeText(appId);
+      showToast(t('copySuccess'), 'success');
+    } catch (err) {
+      showToast('Failed to copy Application ID.', 'error');
+    }
+  });
+}
+
+// Dev portal button
+if (els.btnDevPortal) {
+  els.btnDevPortal.addEventListener('click', () => {
+    wickedRP.openUrl('https://discord.com/developers/applications');
+  });
+}
 
 // ---------------------------------------------------------------- profiles
 async function loadProfiles() {
@@ -1063,7 +1274,7 @@ function renderProfiles() {
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.34 9.45a.5.5 0 0 1-.832.83l-9.45-3.34a.5.5 0 0 1-.832-.83l3.34-9.45a.5.5 0 0 1 1.664 0l3.34 9.45a.5.5 0 0 1 .832.83z"/></svg>
           ${t('load')}
         </button>
-        <button class="btn-danger-sm profile-btn-delete" data-id="${profile.id}" title="${t('delete')}" onclick="event.stopPropagation(); deleteProfile('${escapeHtml(profile.name)}', '${profile.id}')">
+        <button class="btn-danger-sm profile-btn-delete" data-id="${profile.id}" title="${t('delete')}" onclick="event.stopPropagation(); window.deleteProfile('${escapeHtml(profile.name)}', '${profile.id}')">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           ${t('delete')}
         </button>
@@ -1095,6 +1306,8 @@ async function deleteProfile(name, id) {
   await saveSettings({ profiles, activeProfile });
   renderProfiles();
 }
+
+window.deleteProfile = deleteProfile;
 
 els.btnNewProfile.addEventListener('click', () => {
   showView('presence');
@@ -1201,7 +1414,7 @@ els.mediaUpload.addEventListener('change', async (e) => {
   if (!files.length) return;
 
   showToast(t('mediaUploaded'), 'success');
-  e.target.value = ''; // Reset input
+  e.target.value = '';
 });
 
 els.useMediaBtn.addEventListener('click', () => {
@@ -1264,6 +1477,7 @@ async function loadSettings() {
   const settings = await wickedRP.getStoredSettings();
   els.settingStartOnBoot.checked = !!settings.startOnBoot;
   els.settingMinimizeToTray.checked = settings.minimizeToTray !== false;
+  els.settingAutoApply.checked = settings.autoApply !== false;
   els.settingAppId.value = settings.discordAppId || DEFAULT_APP_ID;
   currentTheme = settings.theme || 'dark';
   currentLang = settings.language || 'en';
@@ -1276,6 +1490,7 @@ els.btnSaveSettings.addEventListener('click', async () => {
   await saveSettings({
     startOnBoot: els.settingStartOnBoot.checked,
     minimizeToTray: els.settingMinimizeToTray.checked,
+    autoApply: els.settingAutoApply.checked,
     discordAppId: els.settingAppId.value.trim(),
     language: els.settingLang ? els.settingLang.value : 'en',
   });
@@ -1313,8 +1528,12 @@ function showToast(message, type = 'info') {
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(-10px)';
-    setTimeout(() => toast.remove(), 300);
+    setTimeout(() => toast.remove(), 3000);
   }, 3000);
+}
+
+function storeSettingsFlag(key, value) {
+  // Store in memory for this session; persisted via settings save
 }
 
 // ---------------------------------------------------------------- init
@@ -1328,13 +1547,21 @@ function showToast(message, type = 'info') {
     initTranslations();
     showView('presence');
     updatePreview(readForm(), rpcConnected);
+    updateGettingStartedCard();
+
+    // Initialize activity type selector
+    els.activityTypeSelect.innerHTML = ACTIVITY_TYPES.map(
+      (a) => `<option value="${a.id}">${a.icon} ${t('activityTypes')[a.id]}</option>`
+    ).join('');
 
     // Check if first run
     const settings = await wickedRP.getStoredSettings();
-    // For now, always show first run if no profiles exist
     if (profiles.length === 0 && !settings.firstRunCompleted) {
       openModal(els.firstRunModal);
       initFirstRun();
+    } else if (profiles.length === 0) {
+      // Show getting started card
+      els.gettingStartedCard.classList.remove('hidden');
     }
   } catch (err) {
     console.error('Init error:', err);
