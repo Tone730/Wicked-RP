@@ -21,6 +21,8 @@ No external docs needed. Wicked RP includes:
 | **Form Validation** | App ID (18-19 digits), timestamps, end-after-start checks |
 | **Copy App ID** | One-click clipboard copy |
 | **Dev Portal Button** | Direct link to Discord Developer Portal |
+| **Discord Auto-Detection** | Automatically finds Discord, Discord PTB, and Discord Canary |
+| **Multi-Discord Support** | Select which Discord version to connect to (or multiple at once) |
 | **Built-in Media Manager** | Upload and manage images/videos in-app |
 | **Quick Presets** | Gaming, Streaming, Working, Listening, Watching |
 | **Multiple Profiles** | Save, load, delete multiple presence configs |
@@ -58,6 +60,10 @@ Download the latest installer from [GitHub Releases](https://github.com/Tone730/
 5. **Configure your presence** — details, state, timestamps, images, buttons
 6. **Click Apply Presence** — your status shows on Discord immediately
 
+## Multiple Discord Versions
+
+Wicked RP automatically detects **Discord**, **Discord PTB**, and **Discord Canary** installations on your system. Use the **Select Discord** dropdown in the sidebar to choose which version to connect to. Wicked RP connects via Discord's IPC pipe system and will auto-reconnect if Discord restarts.
+
 ## Adding Custom Images
 
 Wicked RP includes a **Media Manager** where you can upload images and videos. To use them in Discord Rich Presence:
@@ -69,6 +75,10 @@ Wicked RP includes a **Media Manager** where you can upload images and videos. T
 5. Click **Apply Presence**
 
 > Discord requires images to be uploaded to their system before they can appear in Rich Presence. Text, timestamps, buttons, and party info all work without images.
+
+## Video in Rich Presence
+
+Discord Rich Presence **does not support video** — only static images or animated GIFs. Use an animated GIF as your Large Image Key for a moving effect.
 
 ## Development
 
