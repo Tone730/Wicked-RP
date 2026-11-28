@@ -19,6 +19,10 @@ contextBridge.exposeInMainApi('wickedRP', {
   // Media
   getMediaList: () => ipcRenderer.invoke('get-media-list'),
   deleteMedia: (filename) => ipcRenderer.invoke('delete-media', filename),
+  copyImageKey: (filename) => ipcRenderer.invoke('copy-image-key', filename),
+
+  // Connection testing
+  testConnection: (options) => ipcRenderer.invoke('test-connection', options),
 
   // Presets
   getPresets: () => ipcRenderer.invoke('get-presets'),

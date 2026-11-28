@@ -605,6 +605,47 @@ ipcMain.handle('get-connected-instances', async (event) => {
   return getConnectedInstances();
 });
 
+ipcMain.handle('test-connection', async (event, { discordType, appId }) => {
+  const targetType = discordType || store.get('selectedDiscordType', 'discord');
+  const targetAppId = appId || store.get('discordAppId', DEFAULT_DISCORD_APP_ID);
+  
+  // Check if Discord is running
+  const instances = getDiscordInstances();
+  const running = instances.find((i) => i.id === targetType);
+  if (!running) {
+    return { success: false, error: `${targetType.charAt(0).toUpperCase() + targetType.slice(1)} is not running. Please start Discord first.` };
+  }
+
+  // Try to connect
+  try {
+    const clientData = rpcClients[targetType];
+    if (clientData && clientData.connected) {
+      return { success: true, message: 'Already connected to Discord!' };
+    }
+    
+    // Attempt a temporary connection
+    connectDiscord(targetType, targetAppId);
+    
+    // Wait briefly to see if it connects
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+    const updated = rpcClients[targetType];
+    if (updated && updated.connected) {
+      return { success: true, message: 'Connection successful!' };
+    }
+    
+    return { success: false, error: 'Connection timed out. Make sure Discord is running and try again.' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('copy-image-key', async (event, filename) => {
+  // Return the filename as the image key (without extension for Discord asset key)
+  const key = filename.replace(/\.[^/.]+$/, ''); // Remove extension
+  return { success: true, key, filename };
+});
+
 ipcMain.handle('save-selected-discord-type', async (event, discordType) => {
   store.set('selectedDiscordType', discordType);
   return { success: true };

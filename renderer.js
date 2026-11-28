@@ -61,6 +61,7 @@ const TRANSLATIONS = {
     spectateSecret: 'Spectate Secret',
     applyPresence: 'Apply Presence',
     clearPresence: 'Clear Presence',
+    clearAll: 'Clear All Fields',
     quickPresets: 'Quick Presets',
     applyPreset: 'Apply Preset',
     livePreview: 'Live Preview',
@@ -165,6 +166,7 @@ const TRANSLATIONS = {
     copySuccess: 'Copied to clipboard!',
     discordNotRunning: 'Discord desktop is not running. Please start Discord first.',
     testConnection: 'Test Connection',
+    testing: 'Testing...',
     connectionTested: 'Connection successful!',
     activityTypes: {
       playing: 'Playing',
@@ -218,6 +220,7 @@ const TRANSLATIONS = {
     spectateSecret: 'Clave de Espectador',
     applyPresence: 'Aplicar Presencia',
     clearPresence: 'Limpiar Presencia',
+    clearAll: 'Limpiar Todos los Campos',
     quickPresets: 'Ajustes Rápidos',
     applyPreset: 'Aplicar Ajuste',
     livePreview: 'Vista Previa en Vivo',
@@ -322,6 +325,7 @@ const TRANSLATIONS = {
     copySuccess: '¡Copiado al portapapeles!',
     discordNotRunning: 'Discord de escritorio no está en ejecución. Inicia Discord primero.',
     testConnection: 'Probar Conexión',
+    testing: 'Probando...',
     connectionTested: '¡Conexión exitosa!',
     activityTypes: {
       playing: 'Jugando',
@@ -375,6 +379,7 @@ const TRANSLATIONS = {
     spectateSecret: 'Clé Spectateur',
     applyPresence: 'Appliquer Présence',
     clearPresence: 'Effacer Présence',
+    clearAll: 'Effacer Tous les Champs',
     quickPresets: 'Préréglages Rapides',
     applyPreset: 'Appliquer Préréglage',
     livePreview: 'Aperçu en Direct',
@@ -479,6 +484,7 @@ const TRANSLATIONS = {
     copySuccess: 'Copié dans le presse-papiers !',
     discordNotRunning: 'Discord bureau n\'est pas en cours d\'exécution. Lancez Discord d\'abord.',
     testConnection: 'Tester la Connexion',
+    testing: 'Test en cours...',
     connectionTested: 'Connexion réussie !',
     activityTypes: {
       playing: 'En train de jouer',
@@ -532,6 +538,7 @@ const TRANSLATIONS = {
     spectateSecret: 'Zuschauen-Geheimnis',
     applyPresence: 'Anwesenheit anwenden',
     clearPresence: 'Anwesenheit löschen',
+    clearAll: 'Alle Felder löschen',
     quickPresets: 'Schnellvoreinstellungen',
     applyPreset: 'Voreinstellung anwenden',
     livePreview: 'Live-Vorschau',
@@ -636,6 +643,7 @@ const TRANSLATIONS = {
     copySuccess: 'In Zwischenkopiere!',
     discordNotRunning: 'Discord-Desktop wird nicht ausgeführt. Starte Discord zuerst.',
     testConnection: 'Verbindung testen',
+    testing: 'Verbindung wird getestet...',
     connectionTested: 'Verbindung erfolgreich!',
     activityTypes: {
       playing: 'Spielt',
@@ -689,6 +697,11 @@ const els = {
   btnReconnect: document.getElementById('btn-reconnect'),
   btnCopyAppId: document.getElementById('btn-copy-app-id'),
   btnDevPortal: document.getElementById('btn-dev-portal'),
+  btnTestConnection: document.getElementById('btn-test-connection'),
+  btnCopyImageKey: document.getElementById('btn-copy-image-key'),
+  mediaSearch: document.getElementById('media-search'),
+  profileSearch: document.getElementById('profile-search'),
+  btnClearAll: document.getElementById('btn-clear-all'),
   navItems: document.querySelectorAll('.nav-item'),
   views: document.querySelectorAll('.view'),
 
@@ -1260,10 +1273,118 @@ if (btnReconnect) {
   });
 }
 
+// Test Connection button
+const btnTestConnection = document.getElementById('btn-test-connection');
+if (btnTestConnection) {
+  btnTestConnection.addEventListener('click', async () => {
+    const appId = els.discordAppId.value.trim();
+    if (!/^\d{18,19}$/.test(appId)) {
+      showToast(t('invalidAppId'), 'error');
+      return;
+    }
+    btnTestConnection.textContent = t('testing');
+    btnTestConnection.disabled = true;
+    try {
+      const result = await wickedRP.testConnection({
+        discordType: selectedDiscordType,
+        appId,
+      });
+      if (result.success) {
+        showToast(result.message || t('connectionTested'), 'success');
+      } else {
+        showToast(result.error || t('failedToConnect'), 'error');
+      }
+    } catch (err) {
+      showToast(t('failedToConnect') + ' ' + err.message, 'error');
+    } finally {
+      btnTestConnection.textContent = t('testConnection');
+      btnTestConnection.disabled = false;
+    }
+  });
+}
+
 // Dev portal button
 if (els.btnDevPortal) {
   els.btnDevPortal.addEventListener('click', () => {
     wickedRP.openUrl('https://discord.com/developers/applications');
+  });
+}
+
+// Copy Image Key button
+const btnCopyImageKey = document.getElementById('btn-copy-image-key');
+if (btnCopyImageKey) {
+  btnCopyImageKey.addEventListener('click', async () => {
+    if (!selectedMedia) {
+      showToast('Please select an image first.', 'error');
+      return;
+    }
+    try {
+      const result = await wickedRP.copyImageKey(selectedMedia);
+      if (result.success) {
+        await navigator.clipboard.writeText(result.key);
+        showToast(`Image key "${result.key}" copied!`, 'success');
+        els.fieldLargeImage.value = result.key;
+        updatePreview(readForm(), rpcConnected);
+      } else {
+        showToast('Failed to copy image key.', 'error');
+      }
+    } catch (err) {
+      showToast('Failed to copy image key.', 'error');
+    }
+  });
+}
+
+// Media search
+const mediaSearch = document.getElementById('media-search');
+if (mediaSearch) {
+  mediaSearch.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const items = document.querySelectorAll('.media-item');
+    items.forEach((item) => {
+      const name = item.querySelector('.media-name').textContent.toLowerCase();
+      item.style.display = name.includes(term) ? '' : 'none';
+    });
+  });
+}
+
+// Profile search
+const profileSearch = document.getElementById('profile-search');
+if (profileSearch) {
+  profileSearch.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const items = document.querySelectorAll('.profile-item');
+    items.forEach((item) => {
+      const name = item.querySelector('.profile-name').textContent.toLowerCase();
+      item.style.display = name.includes(term) ? '' : 'none';
+    });
+  });
+}
+
+// Clear All fields
+const btnClearAll = document.getElementById('btn-clear-all');
+if (btnClearAll) {
+  btnClearAll.addEventListener('click', () => {
+    if (!confirm('Clear all presence fields?')) return;
+    els.fieldDetails.value = '';
+    els.fieldState.value = '';
+    els.fieldAppId.value = '';
+    els.fieldStart.value = '';
+    els.fieldEnd.value = '';
+    els.fieldLargeImage.value = '';
+    els.fieldLargeText.value = '';
+    els.fieldSmallImage.value = '';
+    els.fieldSmallText.value = '';
+    els.fieldBtn1Label.value = '';
+    els.fieldBtn1Url.value = '';
+    els.fieldBtn2Label.value = '';
+    els.fieldBtn2Url.value = '';
+    els.fieldPartySize.value = '';
+    els.fieldPartyMax.value = '';
+    els.fieldMatchSecret.value = '';
+    els.fieldJoinSecret.value = '';
+    els.fieldSpectateSecret.value = '';
+    updatePreview(readForm(), rpcConnected);
+    showToast('All fields cleared.', 'info');
   });
 }
 
@@ -1455,8 +1576,13 @@ function renderMedia() {
     };
 
     let preview = '';
+    let gifBadge = '';
     if (media.isImage) {
-      preview = `<img src="${media.url}" class="media-thumb" alt="${escapeHtml(media.name)}">`;
+      const isGif = media.name.toLowerCase().endsWith('.gif');
+      gifBadge = isGif
+        ? '<div class="gif-badge">GIF</div>'
+        : '';
+      preview = `<img src="${media.url}" class="media-thumb" alt="${escapeHtml(media.name)}">${gifBadge}`;
     } else if (media.isVideo) {
       preview = `<video class="media-thumb" muted playsinline><source src="${media.url}" type="${media.isVideo ? 'video/mp4' : ''}">Your browser does not support video</video>`;
     } else {
@@ -1469,7 +1595,12 @@ function renderMedia() {
         <div class="media-name">${escapeHtml(media.name)}</div>
         <div class="media-size">${(media.size / 1024).toFixed(1)} KB</div>
       </div>
-      <button class="media-delete" data-name="${escapeHtml(media.name)}" title="Delete" onclick="event.stopPropagation(); window.deleteMedia('${escapeHtml(media.name)}')">×</button>
+      <div class="media-actions">
+        <button class="btn-icon media-copy-key" title="Copy Image Key" onclick="event.stopPropagation(); window.copyImageKeyFromMedia('${escapeHtml(media.name)}')">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button class="media-delete" title="Delete" onclick="event.stopPropagation(); window.deleteMedia('${escapeHtml(media.name)}')">×</button>
+      </div>
     `;
     els.mediaList.appendChild(item);
   });
@@ -1490,6 +1621,22 @@ async function deleteMedia(filename) {
 }
 
 window.deleteMedia = deleteMedia;
+
+window.copyImageKeyFromMedia = async (filename) => {
+  try {
+    const result = await wickedRP.copyImageKey(filename);
+    if (result.success) {
+      await navigator.clipboard.writeText(result.key);
+      showToast(`Image key "${result.key}" copied!`, 'success');
+      els.fieldLargeImage.value = result.key;
+      updatePreview(readForm(), rpcConnected);
+    } else {
+      showToast('Failed to copy image key.', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to copy image key.', 'error');
+  }
+};
 
 els.mediaUpload.addEventListener('change', async (e) => {
   const files = e.target.files;
