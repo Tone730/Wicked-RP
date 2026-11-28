@@ -286,9 +286,16 @@ function connectDiscord(discordType, appId) {
   client.on('ready', () => {
     rpcClients[discordType].connected = true;
     rpcConnected = true;
-    activeDiscordTypes.push(discordType);
-    log.info(`Discord RPC ready for ${discordType}`);
-    broadcast('rpc-status', { connected: true, discordType, appId, instances: getConnectedInstances() });
+    if (!activeDiscordTypes.includes(discordType)) activeDiscordTypes.push(discordType);
+    // Capture the connected Discord account
+    const user = client.user ? {
+      id: client.user.id,
+      username: client.user.username,
+      discriminator: client.user.discriminator || '0',
+      displayName: client.user.globalName || client.user.username,
+    } : null;
+    log.info(`Discord RPC ready for ${discordType}${user ? ` as ${user.displayName}` : ''}`);
+    broadcast('rpc-status', { connected: true, discordType, appId, user, instances: getConnectedInstances() });
     if (currentActivity) {
       setActivity(currentActivity, discordType);
     }
@@ -503,6 +510,31 @@ app.whenReady().then(() => {
   } catch (err) {
     log.error('Auto-connect failed (app continues running):', err.message);
   }
+
+  // Continuously monitor for Discord — auto-connect as soon as it opens
+  setInterval(() => {
+    if (isQuitting) return;
+    try {
+      const instances = getDiscordInstances();
+      const runningIds = instances.map((i) => i.id);
+      // Tell the renderer which Discords are open
+      broadcast('discord-instances', { running: runningIds, connected: getConnectedInstances() });
+
+      // If a Discord is open but we're not connected, connect automatically
+      if (activeDiscordTypes.length === 0 && runningIds.length > 0) {
+        const typeToConnect = runningIds.includes(savedType) ? savedType : runningIds[0];
+        connectDiscord(typeToConnect, store.get('discordAppId', DEFAULT_DISCORD_APP_ID));
+      }
+      // Clean up dead connections (Discord closed but event didn't fire)
+      for (const type of [...activeDiscordTypes]) {
+        if (!runningIds.includes(type)) {
+          disconnectDiscord(type);
+        }
+      }
+    } catch (err) {
+      // Never crash from monitoring
+    }
+  }, 5000);
 
   registerGlobalShortcuts();
 

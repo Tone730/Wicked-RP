@@ -41,6 +41,7 @@
             <span id="status-text" data-i18n="disconnected">Disconnected</span>
           </div>
         </div>
+        <div class="connected-user" id="connected-user" style="display:none;" title="Connected Discord account"></div>
         <div class="app-id-section">
           <label class="field-label" data-i18n="appIdLabel">Application ID</label>
           <div class="input-group">
@@ -112,10 +113,7 @@
           <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2.163c3.204 0 3.584.012 4.85.071 3.252.144 4.771 1.691 4.919 4.919.059 1.265.072 1.646.072 4.85 0 3.203-.013 3.583-.071 4.85-.144 3.252-1.692 4.771-4.919 4.919-1.265.059-1.646.072-4.85.072-3.203 0-3.583-.013-4.85-.071-3.252-.144-4.771-1.691-4.919-4.919-.059-1.265-.072-1.646-.072-4.85 0-3.203.013-3.583.071-4.85.144-3.252 1.692-4.771 4.919-4.919 1.265-.059 1.646-.072 4.85-.072zm1.042 12.094c-.692.045-1.177.24-1.632.591-.48.37-.885 1.06-.788 2.276.095 1.22-.616 2.266-1.535 2.692-.298.137-2.392 1.083-3.355 1.325-.292.075-2.707.262-2.95.143-.922-.453-.932-2.01-.155-2.859.276-.303 2.47-.989 3.43-.588 1.433.597 2.243 1.595 2.471 2.516.07.277-.137 1.498-1.073 1.949-.911.437-2.547.708-3.649.273-1.123-.442-2.298-1.644-2.596-3.078-.129-.612-.002-2.161 1.047-2.902 1.29-.916 3.48-.963 4.339-.346.73.525.998 1.787.48 2.59-.344.533-.616 1.031-1.074 1.475-.707.685-1.307 1.371-1.646 2.045-.132.261-.125 3.392.862 4.293.925.848 2.491.997 3.246.487.429-.29 2.669-2.093 3.488-1.421.457.376 1.035.907 1.505 1.543.736.994.321 3.466-.317 4.07-.736.694-2.477.666-3.189-.149-.402-.458-.797-1.45-.716-2.478.114-1.458.997-2.571 1.95-2.782 1.195-.265 2.727-.047 3.547.485.727.47 1.468.944 2.295 1.418.485.278 2.23.909 2.949 1.134.613.193 3.021.399 3.29-.306.182-.476-.111-2.172-.692-2.784-.562-.594-1.133-1.188-1.699-1.761z"/></svg>
           Discord
         </a>
-        <a class="footer-link" href="#" onclick="wickedRP.openUrl('https://github.com/Tone730/Wicked-RP'); return false;" data-i18n="github">
-          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2c-4.302 0-7.797 3.5-7.797 7.817 0 3.305 2.038 6.09 4.807 7.103.348.064.478-.166.478-.37 0-.183-.007-.673-.008-1.32-2.003.366-2.426-1.01-2.426-1.01-.324-.847-.788-1.073-.788-1.073-.635-.433.05-.423.05-.423.711.048 1.085.738 1.236 1.128.094.845 1.654 1.194 2.512.89.073-.693.294-1.17.572-1.438-1.638-.186-3.361-.783-3.361-3.506 0-.774.272-1.41.723-1.903-.074-.18-.334-.907.017-1.89 0 0 .596-.176 1.952.737a6.7 6.7 0 0 1 1.357-.466c.448-.142.904-.214 1.364-.214.461 0 .917.072 1.365.214.459.154.849.238 1.356.466 1.357-.913 1.953-.737 1.953-.737.352.983.092 1.71.017 1.89.45.493.723 1.129.723 1.903 0 2.722-1.724 3.32-3.362 3.506.225.271.437.757.572 1.438.858.304 2.416-.046 2.512-.89.15-.39.517-.816 1.235-1.128 0 0 .684-.011.051-.423-.001-.001-.464.633-.788 1.073C19.76 15.907 12 18.816 12 18.816c0-.205.131.436.478.37 2.77-1.013 4.807-3.798 4.807-7.103C19.797 5.5 16.302 2 12 2z"/></svg>
-          GitHub
-        </a>
+        <!-- GitHub link removed per owner request -->
         <div class="footer-version" id="footer-version" data-i18n="version">v2.1.0</div>
       </div>
     </aside>
@@ -372,9 +370,12 @@
             <p class="view-subtitle">Upload and manage images/videos for your presence right in the app.</p>
           </div>
           <div class="view-actions">
-            <button class="btn btn-primary" id="btn-discord-portal">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
-              Open Discord Developer Portal
+            <button class="btn btn-primary" id="btn-open-assets-page" title="Go directly to your app's image upload page">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload GIF/Images to Discord
+            </button>
+            <button class="btn btn-outline" id="btn-discord-portal">
+              Open Developer Portal
             </button>
           </div>
         </header>
@@ -416,14 +417,13 @@
             </button>
           </div>
 
-          <div class="media-note" style="margin-top:24px;padding:16px;background:rgba(124,58,237,0.08);border:1px dashed rgba(124,58,237,0.25);border-radius:8px;">
-            <h4 style="color:var(--accent);margin-bottom:8px;">📷 About Custom Images in Discord</h4>
-            <p style="color:var(--text-muted);font-size:12px;line-height:1.6;margin:0;">
-              Discord Rich Presence requires images to be uploaded to your Discord application in the Developer Portal.
-              Use the <strong>Open Discord Developer Portal</strong> button above, go to <strong>Rich Presence → Art Assets</strong>,
-              and upload your images there. Then copy the <strong>Name</strong> you give each image into the Image Key field in Wicked RP.
-              <br><br>
-              Videos cannot be used in Discord Rich Presence (Discord only supports images). However, you can manage and preview videos here for your own reference.
+          <div class="media-note" style="margin-top:24px;padding:16px;background:rgba(52,199,89,0.08);border:1px dashed rgba(52,199,89,0.3);border-radius:8px;">
+            <h4 style="color:var(--success);margin-bottom:8px;">🎬 How to Use Animated GIFs (3 steps)</h4>
+            <p style="color:var(--text-muted);font-size:12px;line-height:1.7;margin:0;">
+              <strong>1.</strong> Upload your GIF here in the Media Manager, then click the copy button on it — that's your <strong>Image Key</strong>.<br>
+              <strong>2.</strong> Click <strong>Upload GIF/Images to Discord</strong> above and upload the same GIF there. Name it exactly the same as your Image Key.<br>
+              <strong>3.</strong> Paste the Image Key into the <strong>Large Image Key</strong> field and click <strong>Apply Presence</strong> — your GIF will animate on Discord!<br><br>
+              ⚠️ Discord supports animated GIFs but <strong>not videos</strong> (Discord limitation, not ours). Convert MP4 → GIF to use video clips.
             </p>
           </div>
         </div>
@@ -760,8 +760,6 @@
   <!-- Toast container -->
   <div class="toast-container" id="toast-container"></div>
 
-  <script type="module">
-    import { wickedRP } from './renderer.js';
-  </script>
+  <script type="module" src="renderer.js"></script>
 </body>
 </html>

@@ -66,4 +66,9 @@ contextBridge.exposeInMainApi('wickedRP', {
     ipcRenderer.on('navigate-to', handler);
     return () => ipcRenderer.removeListener('navigate-to', handler);
   },
+  onDiscordInstances: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('discord-instances', handler);
+    return () => ipcRenderer.removeListener('discord-instances', handler);
+  },
 });

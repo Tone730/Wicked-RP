@@ -99,7 +99,7 @@ const TRANSLATIONS = {
     help: 'Help & Manual',
     discordServer: 'Discord Server',
     github: 'GitHub',
-    version: 'v2.2.0',
+    version: 'v2.6.0',
     settingsSaved: 'Settings saved.',
     presenceApplied: 'Presence applied to Discord.',
     presenceCleared: 'Presence cleared.',
@@ -115,7 +115,7 @@ const TRANSLATIONS = {
     mediaUploaded: 'Media uploaded successfully.',
     aboutTitle: 'About Wicked RP',
     aboutDesc: 'A modern, customizable Discord Rich Presence manager. Rebranded remake of Custom RP.',
-    aboutVersion: 'Version 2.2.0',
+    aboutVersion: 'Version 2.6.0',
     aboutAuthor: 'Wicked Development',
     aboutLicense: 'MIT License',
     aboutDiscord: 'Built with Electron and discord-rpc',
@@ -258,7 +258,7 @@ const TRANSLATIONS = {
     help: 'Ayuda y Manual',
     discordServer: 'Servidor de Discord',
     github: 'GitHub',
-    version: 'v2.2.0',
+    version: 'v2.6.0',
     settingsSaved: 'Configuración guardada.',
     presenceApplied: 'Presencia aplicada a Discord.',
     presenceCleared: 'Presencia limpiada.',
@@ -274,7 +274,7 @@ const TRANSLATIONS = {
     mediaUploaded: 'Medio subido correctamente.',
     aboutTitle: 'Acerca de Wicked RP',
     aboutDesc: 'Un gestor moderno y personalizable de Presencia de Discord. Remake rebranding de Custom RP.',
-    aboutVersion: 'Versión 2.2.0',
+    aboutVersion: 'Version 2.6.0',
     aboutAuthor: 'Wicked Development',
     aboutLicense: 'Licencia MIT',
     aboutDiscord: 'Construido con Electron y discord-rpc',
@@ -417,7 +417,7 @@ const TRANSLATIONS = {
     help: 'Aide & Manuel',
     discordServer: 'Serveur Discord',
     github: 'GitHub',
-    version: 'v2.2.0',
+    version: 'v2.6.0',
     settingsSaved: 'Paramètres enregistrés.',
     presenceApplied: 'Présence appliquée à Discord.',
     presenceCleared: 'Présence effacée.',
@@ -433,7 +433,7 @@ const TRANSLATIONS = {
     mediaUploaded: 'Média téléchargé avec succès.',
     aboutTitle: 'À propos de Wicked RP',
     aboutDesc: 'Un gestionnaire moderne et personnalisable de Présence Discord. Remake rebrandé de Custom RP.',
-    aboutVersion: 'Version 2.2.0',
+    aboutVersion: 'Version 2.6.0',
     aboutAuthor: 'Wicked Development',
     aboutLicense: 'Licence MIT',
     aboutDiscord: 'Construit avec Electron et discord-rpc',
@@ -576,7 +576,7 @@ const TRANSLATIONS = {
     help: 'Hilfe & Handbuch',
     discordServer: 'Discord-Server',
     github: 'GitHub',
-    version: 'v2.2.0',
+    version: 'v2.6.0',
     settingsSaved: 'Einstellungen gespeichert.',
     presenceApplied: 'Anwesenheit auf Discord angewendet.',
     presenceCleared: 'Anwesenheit gelöscht.',
@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     mediaUploaded: 'Medium erfolgreich hochgeladen.',
     aboutTitle: 'Über Wicked RP',
     aboutDesc: 'Ein moderner, anpassbarer Discord-Anwesenheitsmanager. Rebranding-Neuauflage von Custom RP.',
-    aboutVersion: 'Version 2.2.0',
+    aboutVersion: 'Version 2.6.0',
     aboutAuthor: 'Wicked Development',
     aboutLicense: 'MIT-Lizenz',
     aboutDiscord: 'Erstellt mit Electron und discord-rpc',
@@ -835,6 +835,20 @@ els.navItems.forEach((item) => {
 wickedRP.onNavigateTo((view) => {
   showView(view);
   if (view === 'media') loadMedia();
+});
+
+// Live Discord instance monitoring (main polls every 5s)
+wickedRP.onDiscordInstances((data) => {
+  if (data && data.running) {
+    discordInstances = data.running.map((id) => {
+      const names = { discord: 'Discord', discordptb: 'Discord PTB', discordcanary: 'Discord Canary' };
+      return { id, name: names[id] || id, running: true };
+    });
+  }
+  if (data && data.connected) {
+    connectedInstances = data.connected;
+  }
+  renderDiscordInstances();
 });
 
 // ---------------------------------------------------------------- themes
@@ -1177,7 +1191,17 @@ wickedRP.onRpcStatus((data) => {
   els.statusText.textContent = rpcConnected ? t('connected') : t('disconnected');
   els.btnConnect.style.display = rpcConnected ? 'none' : 'inline-flex';
   els.btnDisconnect.style.display = rpcConnected ? 'flex' : 'none';
-  btnReconnect.style.display = rpcConnected ? 'none' : 'inline-flex';
+  if (btnReconnect) btnReconnect.style.display = rpcConnected ? 'none' : 'inline-flex';
+  // Show the connected Discord account
+  const userEl = document.getElementById('connected-user');
+  if (userEl) {
+    if (data.user && data.user.displayName) {
+      userEl.textContent = `@${data.user.displayName}`;
+      userEl.style.display = 'block';
+    } else if (!rpcConnected) {
+      userEl.style.display = 'none';
+    }
+  }
   updatePreview(readForm(), rpcConnected);
   renderDiscordInstances();
 
@@ -1307,6 +1331,19 @@ if (btnTestConnection) {
 if (els.btnDevPortal) {
   els.btnDevPortal.addEventListener('click', () => {
     wickedRP.openUrl('https://discord.com/developers/applications');
+  });
+}
+
+// Open the asset upload page directly for the current App ID (GIF/image workflow)
+const btnOpenAssetsPage = document.getElementById('btn-open-assets-page');
+if (btnOpenAssetsPage) {
+  btnOpenAssetsPage.addEventListener('click', () => {
+    const appId = els.discordAppId.value.trim() || DEFAULT_APP_ID;
+    if (!/^\d{18,19}$/.test(appId)) {
+      showToast(t('invalidAppId'), 'error');
+      return;
+    }
+    wickedRP.openUrl(`https://discord.com/developers/applications/${appId}/rich-presence/assets`);
   });
 }
 
@@ -1799,3 +1836,4 @@ function storeSettingsFlag(key, value) {
 })();
 
 window.wickedRP = wickedRP;
+window.showView = showView;
