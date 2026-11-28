@@ -5,7 +5,7 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainApi('wickedRP', {
+contextBridge.exposeInMainWorld('wickedRP', {
   // Settings
   getStoredSettings: () => ipcRenderer.invoke('get-stored-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),

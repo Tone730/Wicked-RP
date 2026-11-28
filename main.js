@@ -247,6 +247,19 @@ function createMainWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
+  // Capture renderer errors so we can debug UI failures from the log
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    if (level >= 2) { // warning and error
+      log.error(`[renderer] ${message} (${sourceId}:${line})`);
+    }
+  });
+  mainWindow.webContents.on('preload-error', (event, preloadPath, error) => {
+    log.error(`[preload-error] ${preloadPath}: ${error.message}`);
+  });
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    log.error(`[did-fail-load] ${errorCode} ${errorDescription} ${validatedURL}`);
+  });
+
   mainWindow.once('ready-to-show', () => {
     if (state.maximized) mainWindow.maximize();
     mainWindow.show();
