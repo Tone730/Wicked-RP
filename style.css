@@ -121,27 +121,34 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
 .app::before {
   content: '';
   position: fixed;
-  top: -20%;
+  top: -10%;
   left: -10%;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 60%);
-  blur: 80px;
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle at 20% 30%, rgba(124, 58, 237, 0.18) 0%, transparent 55%);
+  blur: 100px;
   z-index: -1;
   pointer-events: none;
+  animation: pulseBg 8s ease-in-out infinite alternate;
 }
 
 .app::after {
   content: '';
   position: fixed;
-  bottom: -20%;
+  bottom: -10%;
   right: -10%;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 60%);
-  blur: 80px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.14) 0%, transparent 55%);
+  blur: 100px;
   z-index: -1;
   pointer-events: none;
+  animation: pulseBg 10s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes pulseBg {
+  from { opacity: 0.6; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.05); }
 }
 
 /* ======================================================================== */
@@ -149,7 +156,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
 /* ======================================================================== */
 
 .sidebar {
-  width: 280px;
+  width: 300px;
   background: var(--bg-elev);
   border-right: 1px solid var(--border);
   display: flex;
@@ -157,39 +164,42 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
   padding: 0;
   flex-shrink: 0;
   z-index: 10;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 4px 0 20px rgba(0,0,0,0.3);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 20px 20px 8px 20px;
+  gap: 14px;
+  padding: 24px 24px 12px 24px;
 }
 
 .brand-mark {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px var(--accent-glow);
+  box-shadow: 0 10px 28px var(--accent-glow);
 }
+
+.brand-mark svg { width: 24px; height: 24px; }
 
 .brand-text { display: flex; flex-direction: column; }
 
 .brand-name {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
   letter-spacing: -0.5px;
   color: var(--text);
 }
 
 .brand-tag {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-dim);
   margin-top: 1px;
 }
@@ -199,42 +209,43 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
   background: var(--glass);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  padding: 20px;
   margin: 0 20px 20px 20px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   transition: var(--transition);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
-.status-card:hover { border-color: rgba(255, 255, 255, 0.14); }
+.status-card:hover { border-color: rgba(255, 255, 255, 0.16); }
 
 .status-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .status-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--text-dim);
   box-shadow: 0 0 0 rgba(0,0,0,0);
   transition: var(--transition);
 }
-.status-dot.connected { background: var(--success); box-shadow: 0 0 10px var(--success-glow); }
-.status-dot.disconnected { background: var(--danger); box-shadow: 0 0 10px var(--danger-glow); }
+.status-dot.connected { background: var(--success); box-shadow: 0 0 12px var(--success-glow); }
+.status-dot.disconnected { background: var(--danger); box-shadow: 0 0 12px var(--danger-glow); }
 
 #status-text {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text);
   transition: var(--transition);
 }
@@ -271,6 +282,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
 }
 .btn-icon:hover { background: var(--border); border-color: var(--border-focus); }
 
+.btn-copy-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-left: 6px;
+}
+
 .btn-ghost {
   display: flex;
   align-items: center;
@@ -283,6 +300,33 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
   transition: var(--transition);
 }
 .btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+.btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+/* Developer Portal button - prominent call to action */
+.btn-dev-portal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  width: 100%;
+  transition: var(--transition);
+  box-shadow: 0 4px 12px var(--accent-glow);
+  border: none;
+  cursor: pointer;
+}
+.btn-dev-portal:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 16px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.btn-dev-portal:active { transform: translateY(0); }
+.btn-dev-portal svg { width: 14px; height: 14px; }
 
 .btn-ghost-sm {
   padding: 6px 12px;
@@ -310,12 +354,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
-  border-radius: 10px;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
   color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
   border: 1px solid transparent;
@@ -323,16 +367,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
 }
 
 .nav-item:hover {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.05);
   color: var(--text);
-  border-color: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.08);
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(139,92,246,0.08));
+  background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(139,92,246,0.1));
   color: var(--accent);
-  border-color: rgba(124,58,237,0.4);
-  box-shadow: 0 4px 12px rgba(124,58,237,0.15);
+  border-color: rgba(124,58,237,0.45);
+  box-shadow: 0 4px 14px rgba(124,58,237,0.18);
 }
 
 .nav-item .nav-icon { flex-shrink: 0; }
@@ -611,15 +655,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
 /* Configuration Form                                                       */
 /* ======================================================================== */
 
-.form-panel { padding: 24px; }
+.form-panel { padding: 28px; }
 
-.form-section { margin-bottom: 24px; }
+.form-section { margin-bottom: 26px; }
 
 .section-title {
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -631,7 +675,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
   gap: 16px;
 }
 
-.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field { display: flex; flex-direction: column; gap: 7px; }
 
 .form-field.full { grid-column: 1 / -1; }
 .form-field.half { grid-column: span 1; }
@@ -647,7 +691,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-focus); b
 .field-hint {
   font-size: 11px;
   color: var(--text-dim);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .form-actions {

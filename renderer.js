@@ -992,6 +992,21 @@ els.btnConnect.addEventListener('click', async () => {
   }
 });
 
+// Copy Application ID to clipboard
+els.btnCopyAppId = document.getElementById('btn-copy-app-id');
+if (els.btnCopyAppId) {
+  els.btnCopyAppId.addEventListener('click', async () => {
+    const appId = els.discordAppId.value.trim();
+    if (!appId) return;
+    try {
+      await navigator.clipboard.writeText(appId);
+      showToast('Application ID copied to clipboard.', 'success');
+    } catch (err) {
+      showToast('Failed to copy Application ID.', 'error');
+    }
+  });
+}
+
 els.btnDisconnect.addEventListener('click', async () => {
   try {
     await wickedRP.disconnectDiscord();
