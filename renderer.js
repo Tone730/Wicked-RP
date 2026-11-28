@@ -686,6 +686,7 @@ const els = {
   discordAppId: document.getElementById('discord-app-id'),
   btnConnect: document.getElementById('btn-connect'),
   btnDisconnect: document.getElementById('btn-disconnect'),
+  btnReconnect: document.getElementById('btn-reconnect'),
   btnCopyAppId: document.getElementById('btn-copy-app-id'),
   btnDevPortal: document.getElementById('btn-dev-portal'),
   navItems: document.querySelectorAll('.nav-item'),
@@ -1163,6 +1164,7 @@ wickedRP.onRpcStatus((data) => {
   els.statusText.textContent = rpcConnected ? t('connected') : t('disconnected');
   els.btnConnect.style.display = rpcConnected ? 'none' : 'inline-flex';
   els.btnDisconnect.style.display = rpcConnected ? 'flex' : 'none';
+  btnReconnect.style.display = rpcConnected ? 'none' : 'inline-flex';
   updatePreview(readForm(), rpcConnected);
   renderDiscordInstances();
 
@@ -1236,6 +1238,25 @@ if (discordTypeSelect) {
   discordTypeSelect.value = selectedDiscordType;
   discordTypeSelect.addEventListener('change', (e) => {
     selectDiscordType(e.target.value);
+  });
+}
+
+// Reconnect button
+const btnReconnect = document.getElementById('btn-reconnect');
+if (btnReconnect) {
+  btnReconnect.addEventListener('click', async () => {
+    const appId = els.discordAppId.value.trim();
+    if (!/^\d{18,19}$/.test(appId)) {
+      showToast(t('invalidAppId'), 'error');
+      return;
+    }
+    try {
+      await wickedRP.connectDiscord({ discordType: selectedDiscordType, appId });
+      selectDiscordType(selectedDiscordType);
+      showToast('Reconnecting to Discord...', 'info');
+    } catch (err) {
+      showToast(t('failedToConnect') + ' ' + err.message, 'error');
+    }
   });
 }
 

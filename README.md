@@ -31,6 +31,7 @@ No external docs needed. Wicked RP includes:
 | **Profile Import/Export** | JSON backup and restore |
 | **Window State Memory** | Remembers position, size, maximized state |
 | **Auto-Reconnect** | Reconnects to Discord if it restarts (exponential backoff) |
+| **Reconnect Button** | One-click reconnect when connection drops |
 | **Production Installer** | NSIS installer for Windows x64 |
 
 ## All Custom RP Features ✅
