@@ -612,8 +612,8 @@ function savePresets(presets) {
 }
 
 // ---------------------------------------------------------------- IPC handlers
-ipcMain.on('get-stored-settings', (event) => {
-  event.returnValue = {
+ipcMain.handle('get-stored-settings', async () => {
+  return {
     discordAppId: store.get('discordAppId', DEFAULT_DISCORD_APP_ID),
     profiles: store.get('profiles', []),
     activeProfile: store.get('activeProfile', null),

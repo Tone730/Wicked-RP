@@ -13,8 +13,11 @@ contextBridge.exposeInMainWorld('wickedRP', {
   // Presence
   setPresence: (activity) => ipcRenderer.invoke('set-presence', activity),
   clearPresence: () => ipcRenderer.invoke('clear-presence'),
-  connectDiscord: (appId) => ipcRenderer.invoke('connect-discord', appId),
-  disconnectDiscord: () => ipcRenderer.invoke('disconnect-discord'),
+  connectDiscord: (options) => ipcRenderer.invoke('connect-discord', options),
+  disconnectDiscord: (discordType) => ipcRenderer.invoke('disconnect-discord', discordType),
+  getDiscordInstances: () => ipcRenderer.invoke('get-discord-instances'),
+  getConnectedInstances: () => ipcRenderer.invoke('get-connected-instances'),
+  saveSelectedDiscordType: (discordType) => ipcRenderer.invoke('save-selected-discord-type', discordType),
 
   // Media
   getMediaList: () => ipcRenderer.invoke('get-media-list'),

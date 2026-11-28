@@ -1835,5 +1835,8 @@ function storeSettingsFlag(key, value) {
   }
 })();
 
-window.wickedRP = wickedRP;
-window.showView = showView;
+// contextBridge already exposes wickedRP as a read-only global — reassigning throws.
+// showView is exposed for inline onclick handlers.
+try {
+  window.showView = showView;
+} catch (e) { /* ignore */ }
