@@ -372,6 +372,7 @@ function setActivity(activity, discordType = null) {
     const rpcActivity = {
       details: activity.details || '',
       state: activity.state || '',
+      type: activity.type !== undefined ? activity.type : 0, // 0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing
       startTimestamp: activity.startTimestamp || null,
       endTimestamp: activity.endTimestamp || null,
       largeImageKey: activity.largeImageKey || null,
@@ -380,6 +381,11 @@ function setActivity(activity, discordType = null) {
       smallImageText: activity.smallImageText || '',
       instance: false,
     };
+
+    // Streaming activity type requires a Twitch URL
+    if (activity.type === 1 && activity.streamUrl) {
+      rpcActivity.url = activity.streamUrl;
+    }
 
     if (activity.buttons && activity.buttons.length > 0) {
       rpcActivity.buttons = activity.buttons.slice(0, 2).map((b) => ({
@@ -548,6 +554,19 @@ app.whenReady().then(() => {
       // Never crash from monitoring
     }
   }, 5000);
+
+  // Presence keep-alive (Vencord-style): re-send activity every 5 minutes so it never drops
+  setInterval(() => {
+    if (isQuitting) return;
+    try {
+      if (currentActivity && rpcConnected) {
+        setActivity(currentActivity);
+        log.info('Presence keep-alive re-sent');
+      }
+    } catch (err) {
+      // ignore
+    }
+  }, 5 * 60 * 1000);
 
   registerGlobalShortcuts();
 

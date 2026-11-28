@@ -7,12 +7,13 @@ const DEFAULT_APP_ID = '1573677093601017927';
 const APP_VERSION = '2.3.0';
 
 // ---------------------------------------------------------------- activity types
+// type codes match Discord's ActivityType: 0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing
 const ACTIVITY_TYPES = [
-  { id: 'playing', name: 'Playing', icon: '🎮', details: 'Gaming', state: 'Playing an epic game' },
-  { id: 'streaming', name: 'Streaming', icon: '🔴', details: 'Streaming', state: 'Live on Twitch', url: 'https://twitch.tv/' },
-  { id: 'listening', name: 'Listening to Music', icon: '🎵', details: 'Listening to Music', state: 'Favorite playlist' },
-  { id: 'watching', name: 'Watching', icon: '📺', details: 'Watching', state: 'Great movie' },
-  { id: 'competing', name: 'Competing', icon: '🏆', details: 'Competing', state: 'Ranked match' },
+  { id: 'playing', type: 0, name: 'Playing', icon: '🎮', details: 'Gaming', state: 'Playing an epic game' },
+  { id: 'streaming', type: 1, name: 'Streaming', icon: '🔴', details: 'Streaming', state: 'Live on Twitch', url: 'https://twitch.tv/' },
+  { id: 'listening', type: 2, name: 'Listening to Music', icon: '🎵', details: 'Listening to Music', state: 'Favorite playlist' },
+  { id: 'watching', type: 3, name: 'Watching', icon: '📺', details: 'Watching', state: 'Great movie' },
+  { id: 'competing', type: 5, name: 'Competing', icon: '🏆', details: 'Competing', state: 'Ranked match' },
 ];
 
 // ---------------------------------------------------------------- translations (i18n)
@@ -710,6 +711,7 @@ const els = {
   fieldDetails: document.getElementById('field-details'),
   fieldState: document.getElementById('field-state'),
   fieldAppId: document.getElementById('field-app-id'),
+  fieldStreamUrl: document.getElementById('field-stream-url'),
   fieldStart: document.getElementById('field-start'),
   fieldEnd: document.getElementById('field-end'),
   fieldLargeImage: document.getElementById('field-large-image'),
@@ -961,9 +963,12 @@ function readForm() {
     buttons.push({ label: els.fieldBtn2Label.value.trim(), url: els.fieldBtn2Url.value.trim() });
   }
 
+  const selectedType = ACTIVITY_TYPES.find((t) => t.id === els.activityTypeSelect.value);
   const activity = {
     details: els.fieldDetails.value.trim(),
     state: els.fieldState.value.trim(),
+    type: selectedType ? selectedType.type : 0,
+    streamUrl: els.fieldStreamUrl ? els.fieldStreamUrl.value.trim() : null,
     appId: els.fieldAppId.value.trim() || null,
     startTimestamp: els.fieldStart.value ? parseInt(els.fieldStart.value, 10) * 1000 : null,
     endTimestamp: els.fieldEnd.value ? parseInt(els.fieldEnd.value, 10) * 1000 : null,
@@ -1127,9 +1132,11 @@ els.activityTypeSelect.addEventListener('change', () => {
   if (type) {
     els.fieldDetails.value = type.details;
     els.fieldState.value = type.state;
-    if (type.url) {
-      els.fieldBtn1Label.value = 'Watch Stream';
-      els.fieldBtn1Url.value = type.url + 'example';
+    // Show streaming URL field only for Streaming type
+    const streamRow = document.getElementById('stream-url-row');
+    if (streamRow) streamRow.style.display = type.type === 1 ? '' : 'none';
+    if (type.url && !els.fieldStreamUrl.value) {
+      els.fieldStreamUrl.value = type.url;
     }
     updatePreview(readForm(), rpcConnected);
   }
