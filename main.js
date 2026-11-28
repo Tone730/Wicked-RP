@@ -19,7 +19,7 @@ const store = new Store();
 
 // ---------------------------------------------------------------- constants
 const DEFAULT_DISCORD_APP_ID = '1573677093601017927';
-const APP_VERSION = '2.3.0';
+const APP_VERSION = '2.6.0';
 const MEDIA_DIR = path.join(app.getPath('userData'), 'media');
 const PRESETS_FILE = path.join(app.getPath('userData'), 'presets.json');
 const THEMES_FILE = path.join(app.getPath('userData'), 'themes.json');
@@ -266,7 +266,7 @@ function connectDiscord(discordType, appId) {
     return null;
   }
 
-  const client = new Client({ transport: 'rpc' });
+  const client = new Client({ transport: 'ipc' });
   rpcClients[discordType] = { client, connected: false, appId };
 
   client.on('ready', () => {
@@ -477,15 +477,17 @@ app.whenReady().then(() => {
   const savedAppId = store.get('discordAppId', DEFAULT_DISCORD_APP_ID);
   const savedType = store.get('selectedDiscordType', 'discord');
 
-  // Auto-detect and connect to Discord
-  const instances = getDiscordInstances();
-  if (instances.length > 0) {
-    // Connect to the saved type if available, otherwise first available
-    const typeToConnect = instances.find((i) => i.id === savedType) ? savedType : instances[0].id;
-    connectDiscord(typeToConnect, savedAppId);
-  } else {
-    // No Discord running - still store settings for when it starts
-    log.info('No Discord instances detected. Will auto-connect when Discord starts.');
+  // Auto-detect and connect to Discord (never crash the app on RPC errors)
+  try {
+    const instances = getDiscordInstances();
+    if (instances.length > 0) {
+      const typeToConnect = instances.find((i) => i.id === savedType) ? savedType : instances[0].id;
+      connectDiscord(typeToConnect, savedAppId);
+    } else {
+      log.info('No Discord instances detected. Will auto-connect when Discord starts.');
+    }
+  } catch (err) {
+    log.error('Auto-connect failed (app continues running):', err.message);
   }
 
   registerGlobalShortcuts();
@@ -493,6 +495,14 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
   });
+});
+
+// Global crash protection — log and keep running
+process.on('unhandledRejection', (reason) => {
+  log.error('Unhandled rejection (app continues running):', reason);
+});
+process.on('uncaughtException', (err) => {
+  log.error('Uncaught exception (app continues running):', err.message);
 });
 
 app.on('window-all-closed', (e) => {

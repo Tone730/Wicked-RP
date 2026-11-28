@@ -65,14 +65,18 @@
       {
         "from": "media",
         "to": "media",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "assets/icon.ico",
@@ -87,5 +91,8 @@
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     }
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
   }
 }
