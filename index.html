@@ -139,29 +139,51 @@
         </header>
 
         <div class="presence-grid">
-          <!-- Preview panel -->
+          <!-- Preview panel — Discord profile mockup -->
           <div class="preview-panel glass">
             <div class="preview-header">
-              <span class="preview-label" data-i18n="livePreview">Live Preview</span>
+              <span class="preview-label" data-i18n="livePreview">Discord Profile Preview</span>
               <div class="preview-status">
                 <span class="status-badge offline" id="status-badge">● Offline</span>
               </div>
             </div>
-            <div class="discord-card" id="discord-card">
-              <div class="discord-activity">
-                <div class="discord-icon">
-                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2.163c3.204 0 3.584.012 4.85.071 3.252.144 4.771 1.691 4.919 4.919.059 1.265.072 1.646.072 4.85 0 3.203-.013 3.583-.071 4.85-.144 3.252-1.692 4.771-4.919 4.919-1.265.059-1.646.072-4.85.072-3.203 0-3.583-.013-4.85-.071-3.252-.144-4.771-1.691-4.919-4.919-.059-1.265-.072-1.646-.072-4.85 0-3.203.013-3.583.071-4.85.144-3.252 1.692-4.771 4.919-4.919 1.265-.059 1.646-.072 4.85-.072zM3.032 7.696c.392.343 1.168 1.485 1.425 3.068.182 1.121-.434 2.273-1.177 2.537-.742.263-2.392 1.083-3.355 1.325-.292.075-2.707.262-2.95.143-.922-.453-.932-2.01-.155-2.859.276-.303 2.47-.989 3.43-.588 1.433.597 2.243 1.595 2.471 2.516.07.277-.137 1.498-1.073 1.949-.911.437-2.547.708-3.649.273-1.123-.442-2.298-1.644-2.596-3.078-.129-.612-.002-2.161 1.047-2.902 1.29-.916 3.48-.963 4.339-.346.73.525.998 1.787.48 2.59-.344.533-.616 1.031-1.074 1.475-.707.685-1.307 1.371-1.646 2.045-.132.261-.125 3.392.862 4.293.925.848 2.491.997 3.246.487.429-.29 2.669-2.093 3.488-1.421.457.376 1.035.907 1.505 1.543.736.994.321 3.466-.317 4.07-.736.694-2.477.666-3.189-.149-.402-.458-.797-1.45-.716-2.478.114-1.458.997-2.571 1.95-2.782 1.195-.265 2.727-.047 3.547.485.727.47 1.468.944 2.295 1.418.485.278 2.23.909 2.949 1.134.613.193 3.021.399 3.29-.306.182-.476-.111-2.172-.692-2.784-.562-.594-1.133-1.188-1.699-1.761z"/></svg>
+
+            <div class="dprofile" id="discord-profile-card">
+              <div class="dprofile-banner"></div>
+              <div class="dprofile-userrow">
+                <div class="dprofile-avatar">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="#dcddde"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                  <span class="dprofile-avatar-dot"></span>
                 </div>
-                <div class="discord-info">
-                  <div class="discord-name" id="preview-name">Playing</div>
-                  <div class="discord-state" id="preview-state">Something awesome</div>
-                  <div class="discord-meta" id="preview-meta"></div>
-                </div>
-                <div class="discord-image" id="preview-image">
-                  <div class="image-placeholder">No Image</div>
+                <div class="dprofile-username">
+                  <span class="dprofile-displayname" id="dprofile-displayname">Your Name</span>
+                  <span class="dprofile-tag" id="dprofile-account">@wickedmenu</span>
                 </div>
               </div>
-              <div class="discord-buttons" id="preview-buttons"></div>
+              <div class="dprofile-divider"></div>
+              <div class="dprofile-activitywrap">
+                <div class="dprofile-activity-label" id="preview-name">PLAYING A GAME</div>
+                <div class="dprofile-activity">
+                  <div class="dprofile-imagebox">
+                    <div class="dprofile-largeimg" id="preview-image">
+                      <div class="image-placeholder">?</div>
+                    </div>
+                    <div class="dprofile-smallimg" id="preview-smallimage"></div>
+                  </div>
+                  <div class="dprofile-activityinfo">
+                    <div class="dprofile-details" id="preview-details">Gaming</div>
+                    <div class="dprofile-state" id="preview-state">Playing an epic game</div>
+                    <div class="dprofile-elapsed" id="preview-elapsed"></div>
+                    <div class="dprofile-party" id="preview-party"></div>
+                  </div>
+                </div>
+                <div class="dprofile-buttons" id="preview-buttons"></div>
+              </div>
+            </div>
+
+            <div class="quick-timers">
+              <button class="btn btn-sm" id="btn-timer-now" title="Set Start Time to right now (elapsed counter starts)">⏱ Start Timer Now</button>
+              <button class="btn btn-sm" id="btn-timer-clear" title="Clear timestamps">Clear Timer</button>
             </div>
           </div>
 

@@ -736,6 +736,7 @@ const els = {
 
   // Preview
   previewName: document.getElementById('preview-name'),
+  previewDetails: document.getElementById('preview-details'),
   previewState: document.getElementById('preview-state'),
   previewMeta: document.getElementById('preview-meta'),
   previewImage: document.getElementById('preview-image'),
@@ -1035,24 +1036,75 @@ function writeForm(activity) {
   }
 }
 
-function updatePreview(activity, connected) {
-  els.previewName.textContent = activity.details || 'Playing';
-  els.previewState.textContent = activity.state || 'Something awesome';
+// Discord activity type labels (uppercase, like Discord shows them)
+const ACTIVITY_LABELS = {
+  0: 'PLAYING A GAME',
+  1: 'STREAMING',
+  2: 'LISTENING TO',
+  3: 'WATCHING',
+  5: 'COMPETING IN',
+};
 
-  let meta = '';
-  if (activity.startTimestamp) {
-    const start = new Date(activity.startTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    meta = `Started ${start}`;
-    if (activity.endTimestamp) {
-      const end = new Date(activity.endTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      meta += ` • Ends ${end}`;
+// Last activity shown — used by the 1-second live timer
+let lastPreviewActivity = null;
+
+function formatDuration(ms) {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const mm = String(m).padStart(2, '0');
+  const ss = String(s).padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+function renderPreviewElapsed() {
+  const el = document.getElementById('preview-elapsed');
+  if (!el || !lastPreviewActivity) return;
+  const a = lastPreviewActivity;
+  let text = '';
+  const now = Date.now();
+  if (a.startTimestamp && !a.endTimestamp) {
+    text = `${formatDuration(now - a.startTimestamp)} elapsed`;
+  } else if (!a.startTimestamp && a.endTimestamp) {
+    text = `${formatDuration(a.endTimestamp - now)} left`;
+  } else if (a.startTimestamp && a.endTimestamp) {
+    text = `${formatDuration(now - a.startTimestamp)} elapsed • ${formatDuration(a.endTimestamp - now)} left`;
+  }
+  el.textContent = text;
+  // Party size
+  const partyEl = document.getElementById('preview-party');
+  if (partyEl) {
+    partyEl.textContent = a.partySize && a.partyMax ? `${a.partySize} of ${a.partyMax}` : '';
+  }
+}
+
+function updatePreview(activity, connected) {
+  lastPreviewActivity = activity;
+
+  // Activity type label (like Discord: PLAYING A GAME / STREAMING / etc.)
+  els.previewName.textContent = ACTIVITY_LABELS[activity.type] || 'PLAYING A GAME';
+
+  // Details line = activity name, State line = state text
+  els.previewDetails.textContent = activity.details || '—';
+  els.previewState.textContent = activity.state || '';
+
+  // Small image badge
+  const smallImg = document.getElementById('preview-smallimage');
+  if (smallImg) {
+    if (activity.smallImageKey) {
+      const sm = mediaList.find((m) => m.name === activity.smallImageKey || m.path === activity.smallImageKey);
+      const url = sm ? sm.url : `https://cdn.discordapp.com/app-assets/${activity.appId || els.discordAppId.value || '0'}/${activity.smallImageKey}.png`;
+      smallImg.classList.add('has-image');
+      smallImg.style.backgroundImage = `url('${url}')`;
+      if (activity.smallImageText) smallImg.title = activity.smallImageText;
+    } else {
+      smallImg.classList.remove('has-image');
+      smallImg.style.backgroundImage = '';
     }
   }
-  if (activity.partySize && activity.partyMax) {
-    meta += ` • ${activity.partySize}/${activity.partyMax}`;
-  }
-  els.previewMeta.textContent = meta;
 
+  // Large image
   const imgKey = activity.largeImageKey;
   if (imgKey) {
     const mediaItem = mediaList.find((m) => m.name === imgKey || m.path === imgKey);
@@ -1064,13 +1116,16 @@ function updatePreview(activity, connected) {
       els.previewImage.classList.add('has-image');
       els.previewImage.style.backgroundImage = `url('https://cdn.discordapp.com/app-assets/${activity.appId || els.discordAppId.value || '0'}/${imgKey}.png')`;
       els.previewImage.innerHTML = '';
+      els.previewImage.title = activity.largeImageText || imgKey;
     }
   } else {
     els.previewImage.classList.remove('has-image');
     els.previewImage.style.backgroundImage = '';
-    els.previewImage.innerHTML = '<div class="image-placeholder">No Image</div>';
+    els.previewImage.innerHTML = '<div class="image-placeholder">?</div>';
+    els.previewImage.title = '';
   }
 
+  // Buttons (Discord-style pills)
   els.previewButtons.innerHTML = '';
   if (activity.buttons && activity.buttons.length > 0) {
     activity.buttons.forEach((b) => {
@@ -1080,6 +1135,16 @@ function updatePreview(activity, connected) {
       els.previewButtons.appendChild(btn);
     });
   }
+
+  // Connected account name on the profile card
+  const acctEl = document.getElementById('dprofile-account');
+  if (acctEl) {
+    const stored = localStorage.getItem('wickedRP.account') || '@wickedmenu';
+    acctEl.textContent = stored;
+  }
+
+  // Live timer — start ticking immediately
+  renderPreviewElapsed();
 
   if (connected) {
     els.previewStatusBadge.classList.remove('offline');
@@ -1091,6 +1156,9 @@ function updatePreview(activity, connected) {
     els.previewStatusBadge.textContent = t('offline');
   }
 }
+
+// Tick the elapsed timer every second (Discord-style live counter)
+setInterval(renderPreviewElapsed, 1000);
 
 function applyPresence() {
   const activity = readForm();
@@ -1141,6 +1209,25 @@ els.activityTypeSelect.addEventListener('change', () => {
     updatePreview(readForm(), rpcConnected);
   }
 });
+
+// Quick timer tools (Vencord-style)
+const btnTimerNow = document.getElementById('btn-timer-now');
+if (btnTimerNow) {
+  btnTimerNow.addEventListener('click', () => {
+    els.fieldStart.value = Math.floor(Date.now() / 1000);
+    updatePreview(readForm(), rpcConnected);
+    showToast('Timer started — elapsed counter is live.', 'success');
+  });
+}
+const btnTimerClear = document.getElementById('btn-timer-clear');
+if (btnTimerClear) {
+  btnTimerClear.addEventListener('click', () => {
+    els.fieldStart.value = '';
+    els.fieldEnd.value = '';
+    updatePreview(readForm(), rpcConnected);
+    showToast('Timer cleared.', 'info');
+  });
+}
 
 // Real-time preview
 const formInputs = [
@@ -1205,6 +1292,8 @@ wickedRP.onRpcStatus((data) => {
     if (data.user && data.user.displayName) {
       userEl.textContent = `@${data.user.displayName}`;
       userEl.style.display = 'block';
+      // Remember it for the profile preview card
+      try { localStorage.setItem('wickedRP.account', `@${data.user.displayName}`); } catch (e) {}
     } else if (!rpcConnected) {
       userEl.style.display = 'none';
     }
