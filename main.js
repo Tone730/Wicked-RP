@@ -172,6 +172,20 @@ function startMediaServer() {
     log.info(`Media server running on http://127.0.0.1:${MEDIA_PORT}`);
   });
 
+  // Handle port conflicts gracefully (e.g. a second app instance is already serving media)
+  mediaServer.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      log.warn(`Port ${MEDIA_PORT} already in use — another instance is serving media. Continuing without local media server.`);
+      mediaServer = null;
+      if (mediaWatcher) {
+        mediaWatcher.close();
+        mediaWatcher = null;
+      }
+    } else {
+      log.error('Media server error:', err.message);
+    }
+  });
+
   mediaWatcher = chokidar.watch(MEDIA_DIR, { ignored: /(^|[\/\\])\../ });
   mediaWatcher.on('add', (file) => broadcast('media-updated', { action: 'add', file }));
   mediaWatcher.on('unlink', (file) => broadcast('media-updated', { action: 'remove', file }));
