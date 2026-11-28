@@ -89,6 +89,10 @@
           <svg class="nav-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/></svg>
           <span>Media Manager</span>
         </a>
+        <a class="nav-item" data-view="automations" title="Automations">
+          <svg class="nav-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Automations</span>
+        </a>
         <a class="nav-item" data-view="profiles" title="Profiles" data-i18n="profiles">
           <svg class="nav-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 14a1.65 1.65 0 0 0-1-1.51l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V9a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.01a1.65 1.65 0 0 0 1 1.51l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33V9a2 2 0 0 1 2-2 2 2 0 0 1 2 2v5.5a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33z"/></svg>
           <span>Profiles</span>
@@ -456,6 +460,104 @@
               <strong>3.</strong> Paste the Image Key into the <strong>Large Image Key</strong> field and click <strong>Apply Presence</strong> — your GIF will animate on Discord!<br><br>
               ⚠️ Discord supports animated GIFs but <strong>not videos</strong> (Discord limitation, not ours). Convert MP4 → GIF to use video clips.
             </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== AUTOMATIONS VIEW ===== -->
+      <section class="view hidden" id="view-automations">
+        <header class="view-header">
+          <div class="view-title">
+            <h1>Automations</h1>
+            <p class="view-subtitle">Your presence updates itself — no keys, no APIs, all local.</p>
+          </div>
+          <div class="view-actions">
+            <span class="automation-mode-chip" id="automation-mode-chip">Mode: Manual</span>
+            <button class="btn btn-primary" id="btn-save-automations">Save Automations</button>
+          </div>
+        </header>
+
+        <div class="settings-container glass">
+          <!-- Game auto-detection -->
+          <div class="settings-section">
+            <h3 class="section-title">🎮 Game Auto-Detection</h3>
+            <div class="setting-row">
+              <div class="setting-info">
+                <label class="setting-label">Enable game detection</label>
+                <p class="setting-desc">Watches running processes and auto-applies a presence when you start a game. Like Discord's game activity — fully local.</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="auto-game-toggle">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="game-rules-list" id="game-rules-list"></div>
+            <div class="game-rule-editor">
+              <input type="text" id="game-rule-process" placeholder="Process name (e.g. javaw.exe, RobloxPlayerBeta.exe)" spellcheck="false">
+              <input type="text" id="game-rule-name" placeholder="Activity name (e.g. Roblox)">
+              <input type="text" id="game-rule-state" placeholder="State (e.g. Grinding obbies)">
+              <input type="text" id="game-rule-image" placeholder="Large image key (optional)">
+              <button class="btn btn-primary" id="btn-add-rule">Add Game Rule</button>
+            </div>
+          </div>
+
+          <!-- Idle / AFK presence -->
+          <div class="settings-section">
+            <h3 class="section-title">💤 Idle / AFK Presence</h3>
+            <div class="setting-row">
+              <div class="setting-info">
+                <label class="setting-label">Enable idle presence</label>
+                <p class="setting-desc">After you go AFK, your presence switches to an "Away" activity. Restores automatically when you're back.</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="auto-idle-toggle">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label>AFK after (minutes)</label>
+                <input type="number" id="auto-idle-min" min="1" max="240" value="10">
+              </div>
+              <div class="form-field">
+                <label>Idle Activity Name</label>
+                <input type="text" id="auto-idle-details" value="Away">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field full">
+                <label>Idle State Text</label>
+                <input type="text" id="auto-idle-state" value="Idle — AFK">
+              </div>
+            </div>
+          </div>
+
+          <!-- Media now-playing -->
+          <div class="settings-section">
+            <h3 class="section-title">🎵 Now-Playing (Spotify, YouTube, any app)</h3>
+            <div class="setting-row">
+              <div class="setting-info">
+                <label class="setting-label">Enable now-playing presence</label>
+                <p class="setting-desc">Reads whatever is playing on your PC (Spotify, browsers, players) via Windows — no API keys, no logins.</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="auto-media-toggle">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="form-row">
+              <div class="form-field full">
+                <label>Presence template — use {title} {artist} {album}</label>
+                <input type="text" id="auto-media-template" value="🎵 {title}">
+                <p class="field-hint">Example: "🎵 {title}" → "🎵 Blinding Lights". Artist goes on the second line automatically unless you include {artist}.</p>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field full">
+                <button class="btn btn-outline" id="btn-test-media">Test Now-Playing Detection</button>
+                <p class="field-hint" id="media-test-result" style="margin-top:8px;"></p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

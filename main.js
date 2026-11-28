@@ -4,12 +4,14 @@
  * window state persistence, keyboard shortcuts, about/error dialogs.
  */
 
-const { app, BrowserWindow, ipcMain, Tray, nativeImage, shell, globalShortcut, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, nativeImage, shell, globalShortcut, Menu, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
-const { execSync } = require('child_process');
+const { execSync, exec } = require('child_process');
+const util = require('util');
+const execAsync = util.promisify(exec);
 const { Client } = require('discord-rpc');
 const Store = require('electron-store');
 const log = require('electron-log');
@@ -19,7 +21,7 @@ const store = new Store();
 
 // ---------------------------------------------------------------- constants
 const DEFAULT_DISCORD_APP_ID = '1573677093601017927';
-const APP_VERSION = '2.6.0';
+const APP_VERSION = '2.7.0';
 const MEDIA_DIR = path.join(app.getPath('userData'), 'media');
 const PRESETS_FILE = path.join(app.getPath('userData'), 'presets.json');
 const THEMES_FILE = path.join(app.getPath('userData'), 'themes.json');
@@ -80,28 +82,39 @@ const DISCORD_INSTANCES = [
   { id: 'discordcanary', name: 'Discord Canary', processName: 'DiscordCanary.exe', pipeBase: '\\\\?\\pipe\\discord-ipc-' },
 ];
 
-function detectRunningDiscord() {
-  const running = [];
-  for (const inst of DISCORD_INSTANCES) {
-    try {
-      const output = execSync(`tasklist /FI "IMAGENAME eq ${inst.processName}" /NH`, { encoding: 'utf8', windowsHide: true });
-      if (output.includes(inst.processName)) {
-        running.push({
-          id: inst.id,
-          name: inst.name,
-          processName: inst.processName,
-          pipeBase: inst.pipeBase,
-          running: true,
-        });
-      }
-    } catch (e) {
-      log.error(`Failed to detect ${inst.name}:`, e.message);
+let processListCache = { at: 0, procs: [] };
+
+// One non-blocking tasklist call, cached 4s — shared by Discord detection + game automations
+async function listRunningProcesses() {
+  if (Date.now() - processListCache.at < 4000) return processListCache.procs;
+  try {
+    const { stdout } = await execAsync('tasklist /FO CSV /NH', { encoding: 'utf8', windowsHide: true, maxBuffer: 1024 * 1024 * 4 });
+    const procs = [];
+    for (const line of stdout.split('\n')) {
+      const m = line.match(/^"([^"]+)"/);
+      if (m) procs.push(m[1].toLowerCase());
     }
+    processListCache = { at: Date.now(), procs };
+    return procs;
+  } catch (e) {
+    return processListCache.procs || [];
   }
-  return running;
 }
 
-function getDiscordInstances() {
+async function detectRunningDiscord() {
+  const procs = await listRunningProcesses();
+  return DISCORD_INSTANCES
+    .filter((inst) => procs.includes(inst.processName.toLowerCase()))
+    .map((inst) => ({
+      id: inst.id,
+      name: inst.name,
+      processName: inst.processName,
+      pipeBase: inst.pipeBase,
+      running: true,
+    }));
+}
+
+async function getDiscordInstances() {
   return detectRunningDiscord();
 }
 
@@ -465,6 +478,182 @@ function resetReconnect() {
   }
 }
 
+// ---------------------------------------------------------------- Automations
+// Idle presence, game auto-detection, and keyless media (Spotify/YouTube/etc)
+// now-playing presence — inspired by Vencord's CustomRPC + Discord game activity.
+
+let automations = store.get('automations', {
+  gameDetect: false,
+  gameRules: [],              // [{ id, process, details, state, largeImageKey }]
+  idleDetect: false,
+  idleThresholdMin: 10,       // minutes
+  idleActivity: { details: 'Away', state: 'Idle — AFK' },
+  mediaDetect: false,
+  mediaTemplate: '🎵 {title}',
+  mediaUseStateArtist: true,
+});
+
+let automationState = {
+  mode: 'manual',             // manual | game | idle | media
+  savedManual: null,          // activity to restore when automation ends
+  gameMatchId: null,
+  mediaTrackKey: null,
+  isIdle: false,
+};
+
+let smtcUnavailable = false;  // stop retrying SMTC if WinRT isn't available
+
+function saveAutomationsStore() {
+  store.set('automations', automations);
+}
+
+function buildRuleActivity(rule) {
+  return {
+    details: rule.details || rule.process,
+    state: rule.state || '',
+    type: 0,
+    largeImageKey: rule.largeImageKey || null,
+    largeImageText: rule.details || '',
+  };
+}
+
+function buildMediaActivity(track) {
+  const tpl = automations.mediaTemplate || '🎵 {title}';
+  const details = tpl
+    .replace(/\{title\}/g, track.title || '')
+    .replace(/\{artist\}/g, track.artist || '')
+    .replace(/\{album\}/g, track.album || '')
+    .slice(0, 128);
+  const act = {
+    details,
+    state: automations.mediaUseStateArtist && !tpl.includes('{artist}') ? (track.artist || '').slice(0, 128) : '',
+    type: 2, // LISTENING TO
+  };
+  return act;
+}
+
+// Keyless Windows now-playing via SMTC (System Media Transport Controls).
+// Reads whatever is playing: Spotify, browsers, YouTube in Chrome, etc. No API keys.
+async function getNowPlaying() {
+  if (process.platform !== 'win32' || smtcUnavailable) return null;
+  const ps = `
+    Add-Type -AssemblyName System.Runtime.WindowsRuntime | Out-Null
+    $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation\`1' })[0]
+    function Await($WinRtTask, $ResultType) {
+      $asTask = $asTaskGeneric.MakeGenericMethod($ResultType)
+      $netTask = $asTask.Invoke($null, @($WinRtTask))
+      $netTask.Wait(-1) | Out-Null
+      $netTask.Result
+    }
+    try {
+      $mgr = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+      $s = $mgr.GetCurrentSession()
+      if ($s) {
+        $props = Await ($s.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
+        Write-Output ("OK|" + $props.Title + "|" + $props.Artist + "|" + $props.Album)
+      } else { Write-Output "NONE|" }
+    } catch { Write-Output ("ERR|" + $_.Exception.Message) }
+  `;
+  const encoded = Buffer.from(ps, 'utf16le').toString('base64');
+  try {
+    const { stdout } = await execAsync(`powershell -NoProfile -EncodedCommand ${encoded}`, { encoding: 'utf8', windowsHide: true, timeout: 8000 });
+    const line = (stdout || '').split('\n').find((l) => l.startsWith('OK|') || l.startsWith('NONE|') || l.startsWith('ERR|'));
+    if (!line) return null;
+    if (line.startsWith('ERR|')) {
+      log.warn('SMTC error:', line.slice(4).trim());
+      return null;
+    }
+    if (line.startsWith('NONE|')) return null;
+    const [, title = '', artist = '', album = ''] = line.split('|');
+    if (!title.trim()) return null;
+    return { title: title.trim(), artist: artist.trim(), album: album.trim() };
+  } catch (e) {
+    // WinRT not available (rare) — disable to avoid log spam
+    smtcUnavailable = true;
+    log.warn('Now-playing detection unavailable:', e.message);
+    return null;
+  }
+}
+
+let automationBusy = false;
+
+async function automationTick() {
+  if (isQuitting || automationBusy) return;
+  if (!rpcConnected) return;
+  automationBusy = true;
+  try {
+    const a = automations;
+    const idleSec = (powerMonitor.getSystemIdleTime && process.platform === 'win32') ? powerMonitor.getSystemIdleTime() : 0;
+    const idleHit = a.idleDetect && idleSec >= (a.idleThresholdMin || 10) * 60;
+
+    // ---- IDLE (highest priority) --------------------------------------
+    if (idleHit && !automationState.isIdle) {
+      if (automationState.mode === 'manual') automationState.savedManual = currentActivity;
+      automationState.isIdle = true;
+      automationState.mode = 'idle';
+      setActivity({ details: a.idleActivity.details || 'Away', state: a.idleActivity.state || '', type: 0 });
+      broadcast('automation-status', { mode: 'idle', isIdle: true });
+    } else if (!idleHit && automationState.isIdle) {
+      automationState.isIdle = false;
+      automationState.mode = 'manual';
+      automationState.gameMatchId = null;
+      automationState.mediaTrackKey = null; // let game/media re-apply on next tick
+      if (automationState.savedManual) {
+        setActivity(automationState.savedManual);
+        broadcast('automation-status', { mode: 'manual', isIdle: false });
+      }
+    }
+
+    if (automationState.isIdle) return; // idle overrides everything
+
+    // ---- GAME AUTO-DETECT ---------------------------------------------
+    if (a.gameDetect && a.gameRules.length > 0) {
+      const procs = await listRunningProcesses();
+      const rule = a.gameRules.find((r) => r.process && procs.includes(r.process.toLowerCase()));
+      if (rule && automationState.mode !== 'game') {
+        if (automationState.mode === 'manual') automationState.savedManual = currentActivity;
+        automationState.mode = 'game';
+        automationState.gameMatchId = rule.id;
+        setActivity(buildRuleActivity(rule));
+        log.info(`Automation: game detected — ${rule.process}`);
+        broadcast('automation-status', { mode: 'game', game: rule.details || rule.process });
+      } else if (!rule && automationState.mode === 'game') {
+        automationState.mode = 'manual';
+        automationState.gameMatchId = null;
+        automationState.mediaTrackKey = null; // media re-applies next tick
+        if (automationState.savedManual) {
+          setActivity(automationState.savedManual);
+          broadcast('automation-status', { mode: 'manual' });
+        }
+      }
+    }
+
+    // ---- MEDIA NOW-PLAYING --------------------------------------------
+    if (a.mediaDetect && automationState.mode !== 'game') {
+      const track = await getNowPlaying();
+      if (track && track.title !== automationState.mediaTrackKey) {
+        if (automationState.mode === 'manual') automationState.savedManual = currentActivity;
+        automationState.mediaTrackKey = track.title;
+        automationState.mode = 'media';
+        setActivity(buildMediaActivity(track));
+        log.info(`Automation: now playing — ${track.title} by ${track.artist}`);
+        broadcast('automation-status', { mode: 'media', track });
+      } else if (!track && automationState.mode === 'media') {
+        automationState.mode = 'manual';
+        automationState.mediaTrackKey = null;
+        if (automationState.savedManual) {
+          setActivity(automationState.savedManual);
+          broadcast('automation-status', { mode: 'manual' });
+        }
+      }
+    }
+  } catch (err) {
+    log.warn('Automation tick error (non-fatal):', err.message);
+  } finally {
+    automationBusy = false;
+  }
+}
+
 // ---------------------------------------------------------------- broadcast
 function broadcast(channel, data) {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -531,10 +720,10 @@ app.whenReady().then(() => {
   }
 
   // Continuously monitor for Discord — auto-connect as soon as it opens
-  setInterval(() => {
+  setInterval(async () => {
     if (isQuitting) return;
     try {
-      const instances = getDiscordInstances();
+      const instances = await getDiscordInstances();
       const runningIds = instances.map((i) => i.id);
       // Tell the renderer which Discords are open
       broadcast('discord-instances', { running: runningIds, connected: getConnectedInstances() });
@@ -550,6 +739,8 @@ app.whenReady().then(() => {
           disconnectDiscord(type);
         }
       }
+      // Automations: idle presence, game auto-detect, media now-playing
+      await automationTick();
     } catch (err) {
       // Never crash from monitoring
     }
@@ -691,6 +882,27 @@ ipcMain.handle('get-discord-instances', async (event) => {
 
 ipcMain.handle('get-connected-instances', async (event) => {
   return getConnectedInstances();
+});
+
+ipcMain.handle('get-automations', async () => {
+  return automations;
+});
+
+ipcMain.handle('save-automations', async (event, auto) => {
+  automations = { ...automations, ...auto };
+  // Reset automation state so new settings take effect on next tick
+  automationState.gameMatchId = null;
+  automationState.mediaTrackKey = null;
+  saveAutomationsStore();
+  return { success: true };
+});
+
+ipcMain.handle('get-now-playing', async () => {
+  return getNowPlaying();
+});
+
+ipcMain.handle('get-automation-status', async () => {
+  return { mode: automationState.mode, isIdle: automationState.isIdle };
 });
 
 ipcMain.handle('test-connection', async (event, { discordType, appId }) => {

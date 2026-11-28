@@ -1634,6 +1634,63 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ======================================================================== */
+/* Automations                                                              */
+/* ======================================================================== */
+
+.automation-mode-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 20px;
+  background: rgba(52, 199, 89, 0.12);
+  border: 1px solid rgba(52, 199, 89, 0.3);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.game-rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.game-rule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.game-rule-process {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: 'Consolas', monospace;
+}
+
+.game-rule-activity {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.game-rule-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(255, 59, 48, 0.04);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+/* ======================================================================== */
 /* Modals                                                                   */
 /* ======================================================================== */
 

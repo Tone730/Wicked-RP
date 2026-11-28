@@ -24,6 +24,17 @@ contextBridge.exposeInMainWorld('wickedRP', {
   deleteMedia: (filename) => ipcRenderer.invoke('delete-media', filename),
   copyImageKey: (filename) => ipcRenderer.invoke('copy-image-key', filename),
 
+  // Automations (idle / game detect / media now-playing)
+  getAutomations: () => ipcRenderer.invoke('get-automations'),
+  saveAutomations: (auto) => ipcRenderer.invoke('save-automations', auto),
+  getNowPlaying: () => ipcRenderer.invoke('get-now-playing'),
+  getAutomationStatus: () => ipcRenderer.invoke('get-automation-status'),
+  onAutomationStatus: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('automation-status', handler);
+    return () => ipcRenderer.removeListener('automation-status', handler);
+  },
+
   // Connection testing
   testConnection: (options) => ipcRenderer.invoke('test-connection', options),
 

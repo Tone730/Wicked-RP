@@ -770,6 +770,20 @@ const els = {
   btnSaveSettings: document.getElementById('btn-save-settings'),
   themeCards: document.querySelectorAll('.theme-card'),
 
+  // Automations
+  autoGameToggle: document.getElementById('auto-game-toggle'),
+  autoIdleToggle: document.getElementById('auto-idle-toggle'),
+  autoMediaToggle: document.getElementById('auto-media-toggle'),
+  autoIdleMin: document.getElementById('auto-idle-min'),
+  autoIdleDetails: document.getElementById('auto-idle-details'),
+  autoIdleState: document.getElementById('auto-idle-state'),
+  autoMediaTemplate: document.getElementById('auto-media-template'),
+  gameRulesList: document.getElementById('game-rules-list'),
+  gameRuleProcess: document.getElementById('game-rule-process'),
+  gameRuleName: document.getElementById('game-rule-name'),
+  gameRuleState: document.getElementById('game-rule-state'),
+  gameRuleImage: document.getElementById('game-rule-image'),
+
   // Modals
   aboutModal: document.getElementById('about-modal'),
   helpModal: document.getElementById('help-modal'),
@@ -1865,6 +1879,139 @@ async function loadPresetsData() {
   els.presetSelect.innerHTML = presets.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
 }
 
+// ---------------------------------------------------------------- automations
+let gameRules = [];
+
+async function loadAutomations() {
+  try {
+    const auto = await wickedRP.getAutomations();
+    els.autoGameToggle.checked = !!auto.gameDetect;
+    els.autoIdleToggle.checked = !!auto.idleDetect;
+    els.autoMediaToggle.checked = !!auto.mediaDetect;
+    els.autoIdleMin.value = auto.idleThresholdMin || 10;
+    els.autoIdleDetails.value = (auto.idleActivity && auto.idleActivity.details) || 'Away';
+    els.autoIdleState.value = (auto.idleActivity && auto.idleActivity.state) || 'Idle — AFK';
+    els.autoMediaTemplate.value = auto.mediaTemplate || '🎵 {title}';
+    gameRules = auto.gameRules || [];
+    renderGameRules();
+  } catch (e) {
+    console.warn('Automations load failed:', e.message);
+  }
+}
+
+function renderGameRules() {
+  const list = els.gameRulesList;
+  if (!list) return;
+  list.innerHTML = '';
+  if (gameRules.length === 0) {
+    list.innerHTML = '<p class="field-hint" style="padding:10px 0;">No game rules yet. Add a process name below to auto-set a presence when that game runs.</p>';
+    return;
+  }
+  gameRules.forEach((rule) => {
+    const item = document.createElement('div');
+    item.className = 'game-rule-item';
+    item.innerHTML = `
+      <div class="game-rule-info">
+        <div class="game-rule-process">${escapeHtml(rule.process)}</div>
+        <div class="game-rule-activity">${escapeHtml(rule.details || '')}${rule.state ? ' — ' + escapeHtml(rule.state) : ''}</div>
+      </div>
+      <button class="btn-danger-sm" title="Remove rule">Remove</button>
+    `;
+    item.querySelector('button').addEventListener('click', () => {
+      gameRules = gameRules.filter((r) => r.id !== rule.id);
+      renderGameRules();
+    });
+    list.appendChild(item);
+  });
+}
+
+async function saveAutomationsNow() {
+  await wickedRP.saveAutomations({
+    gameDetect: els.autoGameToggle.checked,
+    idleDetect: els.autoIdleToggle.checked,
+    mediaDetect: els.autoMediaToggle.checked,
+    idleThresholdMin: parseInt(els.autoIdleMin.value, 10) || 10,
+    idleActivity: {
+      details: els.autoIdleDetails.value.trim() || 'Away',
+      state: els.autoIdleState.value.trim(),
+    },
+    mediaTemplate: els.autoMediaTemplate.value.trim() || '🎵 {title}',
+    gameRules,
+  });
+  showToast('Automations saved.', 'success');
+}
+
+function initAutomations() {
+  const btnSaveAuto = document.getElementById('btn-save-automations');
+  if (btnSaveAuto) btnSaveAuto.addEventListener('click', saveAutomationsNow);
+
+  const btnAddRule = document.getElementById('btn-add-rule');
+  if (btnAddRule) {
+    btnAddRule.addEventListener('click', () => {
+      const process = els.gameRuleProcess.value.trim();
+      const details = els.gameRuleName.value.trim();
+      if (!process || !details) {
+        showToast('Enter a process name and an activity name.', 'error');
+        return;
+      }
+      gameRules.push({
+        id: 'rule-' + Date.now(),
+        process,
+        details,
+        state: els.gameRuleState.value.trim(),
+        largeImageKey: els.gameRuleImage.value.trim(),
+      });
+      els.gameRuleProcess.value = '';
+      els.gameRuleName.value = '';
+      els.gameRuleState.value = '';
+      els.gameRuleImage.value = '';
+      renderGameRules();
+      showToast('Game rule added — remember to Save Automations.', 'success');
+    });
+  }
+
+  const btnTestMedia = document.getElementById('btn-test-media');
+  if (btnTestMedia) {
+    btnTestMedia.addEventListener('click', async () => {
+      btnTestMedia.disabled = true;
+      btnTestMedia.textContent = 'Detecting...';
+      try {
+        const track = await wickedRP.getNowPlaying();
+        const result = document.getElementById('media-test-result');
+        if (track) {
+          result.textContent = `♪ Now playing: ${track.title} — ${track.artist}${track.album ? ' (' + track.album + ')' : ''}`;
+          result.style.color = 'var(--success)';
+        } else {
+          result.textContent = 'Nothing playing right now (or your Windows version does not support detection).';
+          result.style.color = 'var(--text-muted)';
+        }
+      } catch (e) {
+        const result = document.getElementById('media-test-result');
+        if (result) {
+          result.textContent = 'Detection failed: ' + e.message;
+          result.style.color = 'var(--danger)';
+        }
+      } finally {
+        btnTestMedia.disabled = false;
+        btnTestMedia.textContent = 'Test Now-Playing Detection';
+      }
+    });
+  }
+
+  // Live automation mode chip
+  const chip = document.getElementById('automation-mode-chip');
+  if (chip) {
+    const setChip = (status) => {
+      const label = status.game ? `🎮 ${status.game}` :
+        status.track ? `🎵 ${status.track.title}` :
+        status.mode ? status.mode.charAt(0).toUpperCase() + status.mode.slice(1) : 'Manual';
+      chip.textContent = 'Mode: ' + label;
+    };
+    wickedRP.onAutomationStatus(setChip);
+    wickedRP.getAutomationStatus().then(setChip).catch(() => {});
+  }
+}
+
 // ---------------------------------------------------------------- helpers
 async function saveSettings(partial) {
   const settings = await wickedRP.getStoredSettings();
@@ -1907,6 +2054,8 @@ function storeSettingsFlag(key, value) {
     await loadPresetsData();
     initThemes();
     initTranslations();
+    initAutomations();
+    loadAutomations();
     showView('presence');
     updatePreview(readForm(), rpcConnected);
     updateGettingStartedCard();
